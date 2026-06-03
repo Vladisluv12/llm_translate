@@ -10,6 +10,11 @@ export interface TextBlock {
 }
 
 let idCounter = 0
+export const MIN_WORD_COUNT = 3
+
+export function resetIdCounter(): void {
+  idCounter = 0
+}
 
 function hasSkippedParent(el: Element): boolean {
   let node: Element | null = el
@@ -26,7 +31,7 @@ export function extractTextBlocks(root: Element = document.body): TextBlock[] {
 
   for (const el of elements) {
     const text = el.textContent?.trim() ?? ''
-    if (text.split(/\s+/).filter(w => w.length > 0).length < 3) continue
+    if (text.split(/\s+/).filter(w => w.length > 0).length < MIN_WORD_COUNT) continue
     if (hasSkippedParent(el)) continue
 
     const id = `zt-${++idCounter}`

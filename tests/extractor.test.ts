@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { extractTextBlocks, TRANSLATABLE_SELECTORS } from '../src/content/extractor'
+import { extractTextBlocks, TRANSLATABLE_SELECTORS, resetIdCounter } from '../src/content/extractor'
 
 describe('extractTextBlocks', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
+    resetIdCounter()
   })
 
   it('extracts paragraphs with unique ids', () => {

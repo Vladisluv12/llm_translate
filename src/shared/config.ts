@@ -26,7 +26,7 @@ export const DEFAULT_CONFIG: ProviderConfig = {
   systemPrompt:
     'You are a professional translator. Translate accurately, preserving tone and formatting. Output only the translation, no explanations.',
   multiplePrompt:
-    'Translate the paragraphs from {{from}} to {{to}}. Return ONLY a valid JSON array with the same structure, replacing each "text" value with its Russian translation. No extra text.\n\n{{json}}',
+    'Translate the paragraphs from {{from}} to {{to}}. Return ONLY a valid JSON array with the same structure, replacing each "text" value with its {{to}} translation. No extra text.\n\n{{json}}',
   singlePrompt: 'Translate the following text from {{from}} to {{to}}. Output only the translation:\n\n{{text}}',
   aiContextAware: false,
   sourceLang: 'auto',

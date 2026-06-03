@@ -44,13 +44,13 @@ export function renderMultiplePrompt(
     2
   )
   return template
-    .replace('{{from}}', from)
-    .replace('{{to}}', to)
-    .replace('{{json}}', json)
+    .replaceAll('{{from}}', from)
+    .replaceAll('{{to}}', to)
+    .replaceAll('{{json}}', json)
 }
 
 export function renderSinglePrompt(template: string, text: string, from: string, to: string): string {
-  return template.replace('{{from}}', from).replace('{{to}}', to).replace('{{text}}', text)
+  return template.replaceAll('{{from}}', from).replaceAll('{{to}}', to).replaceAll('{{text}}', text)
 }
 
 export function parseMultipleResponse(raw: string): Map<string, string> {
