@@ -11,8 +11,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content/content.js"],
-      "run_at": "document_idle",
-      "exclude_matches": ["moz-extension://*/*"]
+      "run_at": "document_idle"
     }
   ],
   "action": {
