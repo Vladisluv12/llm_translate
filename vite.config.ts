@@ -14,9 +14,20 @@ const copyPdfjsWorker = {
   },
 }
 
+// Plugin to copy manifest.json into dist/ after build
+const copyManifest = {
+  name: 'copy-manifest',
+  closeBundle() {
+    copyFileSync(
+      resolve(__dirname, 'manifest.json'),
+      resolve(__dirname, 'dist/manifest.json')
+    )
+  },
+}
+
 export default defineConfig({
   root: 'src',
-  plugins: [copyPdfjsWorker],
+  plugins: [copyPdfjsWorker, copyManifest],
   build: {
     rollupOptions: {
       input: {
