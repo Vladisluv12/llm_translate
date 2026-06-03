@@ -159,4 +159,4 @@ src/
 
 ## Лицензия
 
-MIT — см. файл [LICENSE](LICENSE)
+GNU — см. файл [LICENSE](LICENSE)
