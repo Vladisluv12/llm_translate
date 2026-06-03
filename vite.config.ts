@@ -20,15 +20,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        worker: resolve(__dirname, 'src/background/worker.ts'),
-        content: resolve(__dirname, 'src/content/content.ts'),
+        'background/worker': resolve(__dirname, 'src/background/worker.ts'),
+        'content/content': resolve(__dirname, 'src/content/content.ts'),
         translation: resolve(__dirname, 'src/translation/translation.html'),
         popup: resolve(__dirname, 'src/popup/popup.html'),
         settings: resolve(__dirname, 'src/settings/settings.html'),
         'pdf-viewer': resolve(__dirname, 'src/pdf/pdf-viewer.html'),
       },
       output: {
-        entryFileNames: '[name]/[name].js',
+        entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
       },
