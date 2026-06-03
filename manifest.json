@@ -28,7 +28,7 @@
     "page": "settings/settings.html",
     "open_in_tab": true
   },
-  "permissions": ["activeTab", "tabs", "windows", "storage", "scripting"],
+  "permissions": ["activeTab", "tabs", "storage", "scripting"],
   "host_permissions": ["<all_urls>"],
   "web_accessible_resources": [
     {
