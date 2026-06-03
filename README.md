@@ -159,4 +159,4 @@ src/
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+GNU — see [LICENSE](LICENSE)
