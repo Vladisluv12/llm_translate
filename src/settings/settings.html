@@ -2,9 +2,69 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings</title>
+  <title>Zen Translate Settings</title>
+  <style>
+    body { max-width: 700px; margin: 40px auto; padding: 0 20px; font-family: system-ui, sans-serif; font-size: 14px; }
+    h1 { font-size: 20px; margin-bottom: 24px; }
+    h2 { font-size: 15px; margin: 24px 0 12px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    label { display: block; margin-bottom: 12px; }
+    label span { display: block; margin-bottom: 4px; font-weight: 500; }
+    input[type="text"], input[type="number"], input[type="password"], textarea, select {
+      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+    }
+    textarea { height: 80px; resize: vertical; font-family: monospace; font-size: 13px; }
+    input[type="checkbox"] { margin-right: 8px; }
+    button#save {
+      margin-top: 24px; padding: 10px 24px; background: #3a7bd5; color: #fff;
+      border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
+    }
+    button#save:hover { background: #2d6abf; }
+    #saved-msg { margin-left: 12px; color: green; font-size: 13px; }
+    .hint { font-size: 12px; color: #888; margin-top: 3px; }
+  </style>
 </head>
 <body>
+  <h1>Zen Translate Settings</h1>
+
+  <h2>Provider</h2>
+  <label><span>API URL</span><input type="text" id="apiUrl"></label>
+  <label><span>API Key</span><input type="password" id="apiKey" placeholder="Leave empty for Ollama"></label>
+  <label><span>Model</span><input type="text" id="model"></label>
+  <label><span>Temperature</span><input type="number" id="temperature" min="0" max="2" step="0.05"></label>
+  <label><span>Request Timeout (seconds)</span><input type="number" id="requestTimeout" min="10" max="600"></label>
+  <label><span>Max Requests Per Second</span><input type="number" id="maxRPS" min="1" max="50"></label>
+  <label><span>Max Text Length Per Request (chars)</span><input type="number" id="maxTextLengthPerRequest" min="200" max="8000"></label>
+  <label><span>Max Paragraphs Per Request</span><input type="number" id="maxParagraphsPerRequest" min="1" max="50"></label>
+
+  <h2>Prompts</h2>
+  <p class="hint">Variables: {{from}}, {{to}}, {{text}}, {{json}}, {{imt_title}}, {{imt_theme}}</p>
+  <label><span>System Prompt</span><textarea id="systemPrompt"></textarea></label>
+  <label><span>Multiple Prompt (batched)</span><textarea id="multiplePrompt"></textarea></label>
+  <label><span>Single Prompt</span><textarea id="singlePrompt"></textarea></label>
+
+  <h2>Features</h2>
+  <label>
+    <input type="checkbox" id="aiContextAware">
+    <span style="display:inline">Enable AI Context-Aware</span>
+    <p class="hint">Makes a pre-pass to extract page topic and key terms for more consistent translations.</p>
+  </label>
+
+  <h2>Languages</h2>
+  <label>
+    <span>Source Language</span>
+    <select id="sourceLang">
+      <option value="auto">Auto-detect</option>
+      <option value="en">English</option>
+      <option value="zh">Chinese</option>
+    </select>
+  </label>
+
+  <h2>Hotkey</h2>
+  <p>Default: <strong>Alt+A</strong>. Change in <a href="#" id="open-shortcuts">browser extension shortcuts</a>.</p>
+
+  <button id="save">Save Settings</button>
+  <span id="saved-msg"></span>
+
+  <script type="module" src="settings.js"></script>
 </body>
 </html>

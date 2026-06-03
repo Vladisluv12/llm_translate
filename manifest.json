@@ -25,6 +25,10 @@
       "description": "Toggle page translation"
     }
   },
+  "options_ui": {
+    "page": "settings/settings.html",
+    "open_in_tab": true
+  },
   "permissions": ["activeTab", "tabs", "windows", "storage", "scripting"],
   "host_permissions": ["<all_urls>"],
   "web_accessible_resources": [
