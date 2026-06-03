@@ -2,9 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Viewer</title>
+  <title>Zen Translate — PDF</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { display: flex; height: 100vh; overflow: hidden; font-family: system-ui, sans-serif; }
+    #pdf-panel {
+      flex: 1; overflow-y: auto; background: #525659;
+      display: flex; flex-direction: column; align-items: center; padding: 20px 0;
+    }
+    #translation-panel {
+      width: 50%; overflow-y: auto; background: #fff; padding: 24px 28px;
+      border-left: 1px solid #ddd;
+    }
+    @media (prefers-color-scheme: dark) {
+      #translation-panel { background: #1a1a1a; color: #e8e8e8; border-left-color: #333; }
+    }
+    canvas { display: block; box-shadow: 0 2px 8px rgba(0,0,0,0.4); margin-bottom: 20px; }
+    #status { padding: 12px; font-size: 13px; color: #666; border-bottom: 1px solid #eee; margin-bottom: 16px; }
+    .page-translation { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #eee; }
+    .page-label { font-size: 11px; color: #999; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .page-text { line-height: 1.7; white-space: pre-wrap; }
+    .page-text.loading { color: #bbb; font-style: italic; }
+  </style>
 </head>
 <body>
+  <div id="pdf-panel"></div>
+  <div id="translation-panel">
+    <div id="status">Loading PDF...</div>
+    <div id="translations"></div>
+  </div>
+  <script type="module" src="pdf-viewer.js"></script>
 </body>
 </html>
