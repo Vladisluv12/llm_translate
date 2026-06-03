@@ -1,5 +1,7 @@
 dist/
 node_modules/
 .superpowers/
+.serena/
+.claude/
 web-ext-artifacts/
 test_debug.js
