@@ -65,7 +65,7 @@ async function renderPage(
   const canvas = document.createElement('canvas')
   canvas.width = viewport.width
   canvas.height = viewport.height
-  await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise
+  await page.render({ canvasContext: canvas.getContext('2d')!, canvas, viewport }).promise
   canvasEls.set(pageNum, canvas)
   return canvas
 }
@@ -78,7 +78,7 @@ async function extractPageText(
   const page = await pdf.getPage(pageNum)
   const textContent = await page.getTextContent()
   const text = textContent.items
-    .filter((item): item is PdfTextItem => 'str' in item)
+    .filter((item): item is typeof item & PdfTextItem => 'str' in item)
     .map(item => item.str)
     .join(' ')
     .trim()
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
   const queue = new RateLimitedQueue({ maxRPS: config.maxRPS })
   const translationPanel = document.getElementById('translation-panel')!
 
-  const pdf = await pdfjsLib.getDocument(pdfUrl).promise
+  const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise
   const numPages = pdf.numPages
   statusEl.textContent = `${numPages} pages — rendering...`
 

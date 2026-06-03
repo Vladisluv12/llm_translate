@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { extractTextBlocks, TRANSLATABLE_SELECTORS, resetIdCounter } from '../src/content/extractor'
+import { extractTextBlocks, resetIdCounter } from '../src/content/extractor'
 
 describe('extractTextBlocks', () => {
   beforeEach(() => {

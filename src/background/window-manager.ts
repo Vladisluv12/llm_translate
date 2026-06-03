@@ -10,7 +10,7 @@ export async function openSplitTranslation(
   // Get screen dimensions from the content script context
   const [{ result }] = await browser.scripting.executeScript({
     target: { tabId: sourceTabId },
-    func: () => ({ w: window.screen.width, h: window.screen.height }),
+    func: (() => ({ w: window.screen.width, h: window.screen.height })) as unknown as () => void,
   })
   const { w, h } = result as { w: number; h: number }
   const half = Math.floor(w / 2)

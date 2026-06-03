@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DEFAULT_CONFIG, loadConfig, saveConfig } from '../src/shared/config'
+import { DEFAULT_CONFIG } from '../src/shared/config'
 
 describe('DEFAULT_CONFIG', () => {
   it('has correct Ollama endpoint', () => {

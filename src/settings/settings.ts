@@ -29,12 +29,12 @@ document.getElementById('save')!.addEventListener('click', async () => {
     const el = document.getElementById(key) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null
     if (!el) continue
     if (el instanceof HTMLInputElement && el.type === 'checkbox') {
-      (updated as Record<string, unknown>)[key] = el.checked
+      (updated as unknown as Record<string, unknown>)[key] = el.checked
     } else if (el instanceof HTMLInputElement && el.type === 'number') {
       const parsed = parseFloat(el.value)
-      ;(updated as Record<string, unknown>)[key] = isNaN(parsed) ? base[key] : parsed
+      ;(updated as unknown as Record<string, unknown>)[key] = isNaN(parsed) ? base[key] : parsed
     } else {
-      (updated as Record<string, unknown>)[key] = el.value
+      (updated as unknown as Record<string, unknown>)[key] = el.value
     }
   }
 

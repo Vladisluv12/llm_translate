@@ -5,7 +5,7 @@ import { batchBlocks, renderMultiplePrompt, renderSinglePrompt, parseMultipleRes
 import { openSplitTranslation, closeSplitIfOpen } from './window-manager'
 import { analyzePageContext } from './context-analyzer'
 import { detectLang, langCodeToName, targetLangName } from '../shared/lang-detect'
-import type { Message, TranslationBlock } from '../shared/messages'
+import type { Message, TranslationBlock as _TranslationBlock } from '../shared/messages'
 
 interface ActiveTranslation {
   translationWindowId: number
@@ -63,10 +63,10 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
     // Extract text blocks from the page
     const [{ result: blocks }] = await browser.scripting.executeScript({
       target: { tabId },
-      func: () => {
+      func: (() => {
         return (window as unknown as { __ztExtract: () => Array<{id:string;text:string}> }).__ztExtract()
-      },
-    })
+      }) as unknown as () => void,
+    }) as unknown as [{ result: Array<{id:string;text:string}> | null }]
 
     // NULL GUARD — handle restricted pages
     if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
@@ -88,8 +88,8 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
     if (config.aiContextAware) {
       const [{ result: titleResult }] = await browser.scripting.executeScript({
         target: { tabId },
-        func: () => document.title,
-      })
+        func: (() => document.title) as unknown as () => void,
+      }) as unknown as [{ result: string }]
       const ctx = await analyzePageContext(client, titleResult as string, allText)
       if (ctx.theme) contextSuffix = `\n\nDocument topic: ${ctx.theme}`
       if (Object.keys(ctx.terms).length > 0) {
