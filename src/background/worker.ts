@@ -61,23 +61,30 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
 
   try {
     // Extract text blocks from the page
-    const [{ result: blocks }] = await browser.scripting.executeScript({
-      target: { tabId },
-      func: (() => {
-        return (window as unknown as { __ztExtract: () => Array<{id:string;text:string}> }).__ztExtract()
-      }) as unknown as () => void,
-    }) as unknown as [{ result: Array<{id:string;text:string}> | null }]
-
-    // NULL GUARD — handle restricted pages
-    if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
+    let typedBlocks: Array<{ id: string; text: string }>
+    try {
+      const [{ result: blocks }] = await browser.scripting.executeScript({
+        target: { tabId },
+        func: (() => {
+          return (window as unknown as { __ztExtract: () => Array<{id:string;text:string}> }).__ztExtract()
+        }) as unknown as () => void,
+      }) as unknown as [{ result: Array<{id:string;text:string}> | null }]
+      if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
+        await sendToTranslationWindow(translationWindowId, {
+          type: 'TRANSLATION_ERROR',
+          message: 'Could not extract text from this page. Try reloading the page.',
+        })
+        return
+      }
+      typedBlocks = blocks as Array<{ id: string; text: string }>
+    } catch {
       await sendToTranslationWindow(translationWindowId, {
         type: 'TRANSLATION_ERROR',
-        message: 'Could not extract text from this page.',
+        message: 'Could not access this page. Please reload and try again.',
       })
       return
     }
 
-    const typedBlocks = blocks as Array<{ id: string; text: string }>
     const allText = typedBlocks.map(b => b.text).join(' ')
     const detectedLang = config.sourceLang === 'auto' ? detectLang(allText) : config.sourceLang
     const fromName = langCodeToName(detectedLang)

@@ -6,20 +6,24 @@ interface OcrOptions {
 
 export class OcrManager {
   private worker: Tesseract.Worker | null = null
-  private idleTimer: ReturnType<typeof setTimeout> | null = null
+  private workerLang: string | null = null
   private recognizeQueue: Promise<string> = Promise.resolve('')
+  private idleTimer: ReturnType<typeof setTimeout> | null = null
   private readonly IDLE_TIMEOUT_MS = 2 * 60 * 1000  // 2 minutes
 
   private resetIdleTimer(): void {
     if (this.idleTimer) clearTimeout(this.idleTimer)
-    this.idleTimer = setTimeout(() => {
-      this.terminate()
-    }, this.IDLE_TIMEOUT_MS)
+    this.idleTimer = setTimeout(() => { this.terminate() }, this.IDLE_TIMEOUT_MS)
   }
 
-  private async getWorker(lang: OcrOptions['lang']): Promise<Tesseract.Worker> {
+  private async getWorker(lang: string): Promise<Tesseract.Worker> {
+    // Reinit if language changed
+    if (this.worker && this.workerLang !== lang) {
+      this.terminate()
+    }
     if (!this.worker) {
       this.worker = await Tesseract.createWorker(lang)
+      this.workerLang = lang
     }
     this.resetIdleTimer()
     return this.worker
@@ -47,6 +51,7 @@ export class OcrManager {
     if (this.worker) {
       this.worker.terminate().catch(() => {})
       this.worker = null
+      this.workerLang = null
     }
   }
 }

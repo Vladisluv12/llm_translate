@@ -2,3 +2,4 @@ dist/
 node_modules/
 .superpowers/
 web-ext-artifacts/
+test_debug.js
