@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Zen Translate",
+  "version": "0.1.0",
+  "description": "Split-screen translation powered by local AI (Ollama)",
+  "background": {
+    "scripts": ["background/worker.js"],
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "run_at": "document_idle",
+      "exclude_matches": ["moz-extension://*/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Zen Translate"
+  },
+  "commands": {
+    "toggle-translation": {
+      "suggested_key": { "default": "Alt+A" },
+      "description": "Toggle page translation"
+    }
+  },
+  "permissions": ["activeTab", "tabs", "windows", "storage", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "web_accessible_resources": [
+    {
+      "resources": ["translation/*", "pdf/*", "chunks/*", "assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

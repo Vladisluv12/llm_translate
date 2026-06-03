@@ -1,0 +1,31 @@
+{
+  "name": "zen-translate",
+  "version": "0.1.0",
+  "description": "Split-screen translation powered by local AI (Ollama)",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "franc-min": "^6.2.0",
+    "pdfjs-dist": "^6.0.227",
+    "tesseract.js": "^7.0.0",
+    "webextension-polyfill": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^143.0.0",
+    "@vitest/coverage-v8": "^4.1.8",
+    "happy-dom": "^20.9.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8",
+    "web-ext": "^10.3.0"
+  }
+}
