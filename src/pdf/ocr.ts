@@ -7,6 +7,7 @@ interface OcrOptions {
 export class OcrManager {
   private worker: Tesseract.Worker | null = null
   private idleTimer: ReturnType<typeof setTimeout> | null = null
+  private recognizeQueue: Promise<string> = Promise.resolve('')
   private readonly IDLE_TIMEOUT_MS = 2 * 60 * 1000  // 2 minutes
 
   private resetIdleTimer(): void {
@@ -25,6 +26,12 @@ export class OcrManager {
   }
 
   async recognizePage(imageData: ImageData, opts: OcrOptions): Promise<string> {
+    // Chain onto the existing queue to serialize calls
+    this.recognizeQueue = this.recognizeQueue.then(() => this._doRecognize(imageData, opts))
+    return this.recognizeQueue
+  }
+
+  private async _doRecognize(imageData: ImageData, opts: OcrOptions): Promise<string> {
     const worker = await this.getWorker(opts.lang)
     const canvas = document.createElement('canvas')
     canvas.width = imageData.width

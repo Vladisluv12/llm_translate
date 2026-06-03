@@ -47,7 +47,10 @@ function evictCaches(currentPage: number, pressure: 'warn' | 'crit'): void {
     if (Math.abs(pageNum - currentPage) > threshold && cached.canvas) {
       cached.canvas = null
       const el = canvasEls.get(pageNum)
-      if (el) { el.getContext('2d')!.clearRect(0, 0, el.width, el.height) }
+      if (el) {
+        el.width = 0   // Release GPU backing store
+        el.height = 0  // Release GPU backing store
+      }
     }
   }
   if (pressure === 'crit') ocr.terminate()
@@ -103,35 +106,42 @@ async function main(): Promise<void> {
   const numPages = pdf.numPages
   statusEl.textContent = `${numPages} pages — rendering...`
 
+  const pagesInProgress = new Set<number>()
+
   const observer = new IntersectionObserver(async (entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue
       const pageNum = parseInt((entry.target as HTMLElement).dataset.page ?? '0', 10)
-      if (!pageNum || pageCache.get(pageNum)?.text) continue
+      if (!pageNum || pageCache.get(pageNum)?.text || pagesInProgress.has(pageNum)) continue
 
       const pressure = checkMemory()
       if (pressure !== 'ok') evictCaches(pageNum, pressure)
 
-      const canvas = canvasEls.get(pageNum)!
-      const text = await extractPageText(pdf, pageNum, canvas)
-      const cached = pageCache.get(pageNum)!
-      cached.text = text
-
-      const transEl = document.getElementById(`trans-${pageNum}`)!
-      transEl.classList.add('loading')
-      transEl.textContent = 'Translating...'
-
-      const fromName = langCodeToName(config.sourceLang === 'auto' ? detectLang(text) : config.sourceLang)
-      const toName = targetLangName()
-      const prompt = renderSinglePrompt(config.singlePrompt, text, fromName, toName)
-
+      pagesInProgress.add(pageNum)
       try {
-        const translated = await queue.enqueue(() => client.complete(config.systemPrompt, prompt))
-        transEl.textContent = translated.trim()
-        transEl.classList.remove('loading')
-      } catch (err) {
-        transEl.textContent = `Translation error: ${(err as Error).message}`
-        transEl.classList.remove('loading')
+        const canvas = canvasEls.get(pageNum)!
+        const text = await extractPageText(pdf, pageNum, canvas)
+        const cached = pageCache.get(pageNum)!
+        cached.text = text
+
+        const transEl = document.getElementById(`trans-${pageNum}`)!
+        transEl.classList.add('loading')
+        transEl.textContent = 'Translating...'
+
+        const fromName = langCodeToName(config.sourceLang === 'auto' ? detectLang(text) : config.sourceLang)
+        const toName = targetLangName()
+        const prompt = renderSinglePrompt(config.singlePrompt, text, fromName, toName)
+
+        try {
+          const translated = await queue.enqueue(() => client.complete(config.systemPrompt, prompt))
+          transEl.textContent = translated.trim()
+          transEl.classList.remove('loading')
+        } catch (err) {
+          transEl.textContent = `Translation error: ${(err as Error).message}`
+          transEl.classList.remove('loading')
+        }
+      } finally {
+        pagesInProgress.delete(pageNum)
       }
     }
   }, { rootMargin: '200px' })
