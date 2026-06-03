@@ -31,7 +31,8 @@ document.getElementById('save')!.addEventListener('click', async () => {
     if (el instanceof HTMLInputElement && el.type === 'checkbox') {
       (updated as Record<string, unknown>)[key] = el.checked
     } else if (el instanceof HTMLInputElement && el.type === 'number') {
-      (updated as Record<string, unknown>)[key] = parseFloat(el.value)
+      const parsed = parseFloat(el.value)
+      ;(updated as Record<string, unknown>)[key] = isNaN(parsed) ? base[key] : parsed
     } else {
       (updated as Record<string, unknown>)[key] = el.value
     }

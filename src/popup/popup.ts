@@ -28,7 +28,7 @@ async function init(): Promise<void> {
 
 btnTranslate.addEventListener('click', async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
-  if (!tab.id || !tab.url) return
+  if (!tab?.id || !tab.url) return
   btnTranslate.disabled = true
   progressEl.textContent = 'Starting...'
   const msg: Message = { type: 'START_TRANSLATION', tabId: tab.id, sourceUrl: tab.url }
@@ -38,7 +38,7 @@ btnTranslate.addEventListener('click', async () => {
 
 btnPdf.addEventListener('click', async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
-  if (!tab.id || !tab.url) return
+  if (!tab?.id || !tab.url) return
   const pdfUrl = browser.runtime.getURL(`pdf/pdf-viewer.html?url=${encodeURIComponent(tab.url)}`)
   await browser.tabs.create({ url: pdfUrl })
   window.close()
