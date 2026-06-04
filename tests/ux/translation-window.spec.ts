@@ -87,12 +87,12 @@ test('SCROLL_SYNC message moves window scroll position', async ({ page }) => {
   await page.evaluate(() => window.__mockBrowser.dispatch({ type: 'TRANSLATION_DONE' }))
 
   await page.evaluate(() => {
-    window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: 'zt-15', anchorPx: 0 })
+    window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: 'zt-8', anchorPx: 0 })
   })
   await page.waitForTimeout(150)
 
   const top = await page.evaluate(() => {
-    const el = document.querySelector('[data-zt-id="zt-15"]')!
+    const el = document.querySelector('[data-zt-id="zt-8"]')!
     return el.getBoundingClientRect().top
   })
   // Element should be at the very top of viewport (±5px tolerance)
@@ -120,7 +120,7 @@ for (const [label, size] of [
       await sendBlock(page, `zt-${i}`, `Параграф ${i + 1} — длинный текст для проверки скролла.`)
     }
 
-    for (const anchorId of ['zt-6', 'zt-18', 'zt-24']) {
+    for (const anchorId of ['zt-1', 'zt-2', 'zt-4']) {
       await page.evaluate((id) => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: id, anchorPx: 0 }), anchorId)
       await page.waitForTimeout(200)
 
