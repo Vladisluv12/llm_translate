@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
-import { copyFileSync, mkdirSync } from 'fs'
+import { copyFileSync, mkdirSync, cpSync, existsSync } from 'fs'
 
 // Plugin to copy PDF.js worker into dist/chunks/ after build
 const copyPdfjsWorker = {
@@ -25,9 +25,21 @@ const copyManifest = {
   },
 }
 
+const copyFixtures = {
+  name: 'copy-fixtures',
+  closeBundle() {
+    const src = resolve(__dirname, 'tests/ux/fixtures')
+    const dst = resolve(__dirname, 'dist/fixtures')
+    if (existsSync(src)) {
+      mkdirSync(dst, { recursive: true })
+      cpSync(src, dst, { recursive: true })
+    }
+  },
+}
+
 export default defineConfig({
   root: 'src',
-  plugins: [copyPdfjsWorker, copyManifest],
+  plugins: [copyPdfjsWorker, copyManifest, copyFixtures],
   build: {
     rollupOptions: {
       input: {

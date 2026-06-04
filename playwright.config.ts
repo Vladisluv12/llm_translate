@@ -7,16 +7,17 @@ const SPLIT_HEIGHT = 1080
 
 export default defineConfig({
   testDir: './tests/ux',
+  testMatch: '**/*.spec.ts',
   timeout: 15000,
+  retries: 1,  // retry once on network flakes
   use: {
     baseURL: 'http://localhost:7654',
     browserName: 'firefox',
     headless: true,
-    // Match actual split-screen window dimensions on the user's 1920x1080 display
     viewport: { width: SPLIT_WIDTH, height: SPLIT_HEIGHT },
   },
   webServer: {
-    command: 'npx http-server dist/ -p 7654 -c-1 --silent',
+    command: 'npx http-server dist/ -p 7654 -c-1 --silent --cors -P http://localhost:7654/ --include-hidden',
     url: 'http://localhost:7654',
     reuseExistingServer: false,
   },
