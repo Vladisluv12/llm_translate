@@ -1,4 +1,5 @@
 import { loadConfig } from '../shared/config'
+import { getPageCache, setPageCache } from '../shared/translation-cache'
 import { OpenAIClient } from './openai-client'
 import { RateLimitedQueue } from './queue'
 import { batchBlocks, renderMultiplePrompt, renderSinglePrompt, parseMultipleResponse } from './text-batcher'
@@ -48,7 +49,7 @@ browser.commands.onCommand.addListener(async (command) => {
   }
 })
 
-async function startTranslation(tabId: number, _sourceUrl: string): Promise<void> {
+async function startTranslation(tabId: number, sourceUrl: string): Promise<void> {
   const config = await loadConfig()
   const client = new OpenAIClient(config)
   const queue = new RateLimitedQueue({ maxRPS: config.maxRPS })
@@ -58,6 +59,19 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
 
   const state: ActiveTranslation = { translationWindowId, aborted: false }
   active.set(tabId, state)
+
+  // Cache hit: replay instantly without calling API
+  const cachedPage = await getPageCache(sourceUrl)
+  if (cachedPage) {
+    for (const block of cachedPage.blocks) {
+      await sendToTranslationWindow(translationWindowId, {
+        type: 'TRANSLATION_BLOCK',
+        block: { id: block.id, originalText: block.originalText, translatedText: block.translatedText },
+      })
+    }
+    await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
+    return
+  }
 
   try {
     // Extract text blocks from the page
@@ -84,6 +98,8 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
       })
       return
     }
+
+    const cacheAccumulator: Array<{ id: string; originalText: string; translatedText: string }> = []
 
     const allText = typedBlocks.map(b => b.text).join(' ')
     const detectedLang = config.sourceLang === 'auto' ? detectLang(allText) : config.sourceLang
@@ -134,6 +150,7 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
             block: { id: item.id, originalText: item.text, translatedText },
           }
           await sendToTranslationWindow(translationWindowId, blockMsg)
+          cacheAccumulator.push({ id: item.id, originalText: item.text, translatedText })
         }
       } catch (err) {
         // If batch fails, try individual paragraphs
@@ -148,6 +165,7 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
               block: { id: item.id, originalText: item.text, translatedText: raw.trim() },
             }
             await sendToTranslationWindow(translationWindowId, blockMsg)
+            cacheAccumulator.push({ id: item.id, originalText: item.text, translatedText: raw.trim() })
           } catch {
             done++
             const errorMsg: Message = {
@@ -165,6 +183,11 @@ async function startTranslation(tabId: number, _sourceUrl: string): Promise<void
 
     if (!state.aborted) {
       await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
+      if (cacheAccumulator.length === typedBlocks.length) {
+        try {
+          await setPageCache(sourceUrl, { cachedAt: Date.now(), blocks: cacheAccumulator })
+        } catch { /* storage quota exceeded — translation succeeded, cache skipped */ }
+      }
     }
   } finally {
     active.delete(tabId)
