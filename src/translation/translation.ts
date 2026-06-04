@@ -1,8 +1,5 @@
 import type { Message, TranslationBlock } from '../shared/messages'
 
-const params = new URLSearchParams(location.search)
-const sourceTabId = parseInt(params.get('sourceTabId') ?? '0', 10)
-
 const statusEl = document.getElementById('status')!
 const contentEl = document.getElementById('content')!
 
@@ -60,13 +57,6 @@ browser.runtime.onMessage.addListener((msg: Message) => {
       closest.classList.add('highlight')
     }
   }
-})
-
-// Send scroll position back to source tab
-window.addEventListener('scroll', () => {
-  if (!sourceTabId) return
-  const ratio = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)
-  browser.tabs.sendMessage(sourceTabId, { type: 'SCROLL_SYNC', ratio }).catch(() => {})
 })
 
 setStatus('Waiting for translation...')
