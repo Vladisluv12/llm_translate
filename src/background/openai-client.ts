@@ -40,8 +40,10 @@ export class OpenAIClient {
 
     if (!response.ok) {
       const body = await response.text()
+      const retryAfterSec = response.headers.get('Retry-After')
       const error = Object.assign(new Error(`API error ${response.status}: ${body}`), {
         status: response.status,
+        retryAfterMs: retryAfterSec ? parseInt(retryAfterSec, 10) * 1000 : undefined,
       })
       throw error
     }
