@@ -48,8 +48,17 @@ btnPdf.addEventListener('click', async () => {
 
 btnClearCache.addEventListener('click', async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
-  await clearPageCache(tab.url ?? '')
-  btnClearCache.textContent = 'Cleared ✓'
+  if (!tab?.url) {
+    btnClearCache.textContent = 'No URL'
+    setTimeout(() => { btnClearCache.textContent = 'Clear page cache' }, 1500)
+    return
+  }
+  try {
+    await clearPageCache(tab.url)
+    btnClearCache.textContent = 'Cleared ✓'
+  } catch {
+    btnClearCache.textContent = 'Error'
+  }
   setTimeout(() => { btnClearCache.textContent = 'Clear page cache' }, 1500)
 })
 
