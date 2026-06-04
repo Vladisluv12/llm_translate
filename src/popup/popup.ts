@@ -1,8 +1,10 @@
 import { loadConfig, saveConfig } from '../shared/config'
+import { clearPageCache } from '../shared/translation-cache'
 import type { Message } from '../shared/messages'
 
 const btnTranslate = document.getElementById('btn-translate') as HTMLButtonElement
 const btnPdf = document.getElementById('btn-pdf') as HTMLButtonElement
+const btnClearCache = document.getElementById('btn-clear-cache') as HTMLButtonElement
 const progressEl = document.getElementById('progress')!
 const modelSelect = document.getElementById('model-select') as HTMLSelectElement
 const settingsLink = document.getElementById('settings-link')!
@@ -42,6 +44,13 @@ btnPdf.addEventListener('click', async () => {
   const pdfUrl = browser.runtime.getURL(`pdf/pdf-viewer.html?url=${encodeURIComponent(tab.url)}`)
   await browser.tabs.create({ url: pdfUrl })
   window.close()
+})
+
+btnClearCache.addEventListener('click', async () => {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
+  await clearPageCache(tab.url ?? '')
+  btnClearCache.textContent = 'Cleared ✓'
+  setTimeout(() => { btnClearCache.textContent = 'Clear page cache' }, 1500)
 })
 
 modelSelect.addEventListener('change', async () => {

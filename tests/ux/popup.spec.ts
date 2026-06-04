@@ -131,3 +131,16 @@ test('popup content fits in 280px without horizontal scroll', async ({ page }) =
   const hasOverflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth)
   expect(hasOverflow).toBe(false)
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 11: Clear page cache button shows Cleared confirmation then reverts
+// ─────────────────────────────────────────────────────────────────────────────
+test('clear page cache button shows Cleared confirmation then reverts', async ({ page }) => {
+  await openPopup(page)
+  const btn = page.locator('#btn-clear-cache')
+  await expect(btn).toBeVisible()
+  await btn.click()
+  await expect(btn).toHaveText('Cleared ✓')
+  await page.waitForTimeout(1600)
+  await expect(btn).toHaveText('Clear page cache')
+})
