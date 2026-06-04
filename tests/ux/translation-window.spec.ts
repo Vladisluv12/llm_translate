@@ -156,7 +156,7 @@ test('closest block gets highlight class on scroll sync', async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCENARIO 7: User scroll in translation window sends message back
 // ─────────────────────────────────────────────────────────────────────────────
-test('scrolling translation window sends SCROLL_SYNC to source tab', async ({ page }) => {
+test('scrolling translation window does NOT send SCROLL_SYNC back (source-driven only)', async ({ page }) => {
   await openTranslationPage(page, 42)
   for (let i = 0; i < 30; i++) {
     await sendBlock(page, `zt-${i}`, `Параграф ${i + 1} — текст`)
@@ -167,7 +167,8 @@ test('scrolling translation window sends SCROLL_SYNC to source tab', async ({ pa
 
   const sent = await page.evaluate(() => window.__mockBrowser.sentMessages)
   const scrollMsgs = sent.filter((m: any) => m.msg?.type === 'SCROLL_SYNC')
-  expect(scrollMsgs.length).toBeGreaterThan(0)
+  // Scroll sync is source-driven — translation window must NOT send scroll back
+  expect(scrollMsgs.length).toBe(0)
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
