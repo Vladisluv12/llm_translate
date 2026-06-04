@@ -40,9 +40,12 @@ browser.runtime.onMessage.addListener((msg: Message) => {
     setStatus(`Error: ${msg.message}`)
   }
 
-  if (msg.type === 'SCROLL_SYNC' && msg.ratio !== undefined) {
-    const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-    window.scrollTo({ top: msg.ratio * maxScroll, behavior: 'smooth' })
+  if (msg.type === 'SCROLL_SYNC') {
+    const { anchorId, anchorPx } = msg as Extract<Message, { type: 'SCROLL_SYNC' }>
+    const el = blocks.get(anchorId)
+    if (!el) return
+
+    window.scrollTo({ top: el.offsetTop - anchorPx })
 
     // Highlight the block closest to viewport center
     let closest: HTMLElement | null = null
