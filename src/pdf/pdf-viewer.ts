@@ -5,6 +5,7 @@ import { loadConfig } from '../shared/config'
 import { detectLang, langCodeToName, targetLangName } from '../shared/lang-detect'
 import { renderSinglePrompt } from '../background/text-batcher'
 import { RateLimitedQueue } from '../background/queue'
+import { getPdfPageCache, setPdfPageCache } from '../shared/translation-cache'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('chunks/pdf.worker.js')
 
@@ -114,6 +115,17 @@ async function main(): Promise<void> {
       const pageNum = parseInt((entry.target as HTMLElement).dataset.page ?? '0', 10)
       if (!pageNum || pageCache.get(pageNum)?.text || pagesInProgress.has(pageNum)) continue
 
+      // Check translation cache before calling API
+      const cachedTranslation = await getPdfPageCache(pdfUrl, pageNum)
+      if (cachedTranslation) {
+        const transEl = document.getElementById(`trans-${pageNum}`)!
+        transEl.textContent = cachedTranslation
+        transEl.classList.remove('loading')
+        const cachedPage = pageCache.get(pageNum)
+        if (cachedPage) cachedPage.text = cachedTranslation  // prevents re-translation check
+        continue
+      }
+
       const pressure = checkMemory()
       if (pressure !== 'ok') evictCaches(pageNum, pressure)
 
@@ -136,6 +148,9 @@ async function main(): Promise<void> {
           const translated = await queue.enqueue(() => client.complete(config.systemPrompt, prompt))
           transEl.textContent = translated.trim()
           transEl.classList.remove('loading')
+          try {
+            await setPdfPageCache(pdfUrl, pageNum, translated.trim())
+          } catch { /* storage quota exceeded — display succeeded, cache skipped */ }
         } catch (err) {
           transEl.textContent = `Translation error: ${(err as Error).message}`
           transEl.classList.remove('loading')
