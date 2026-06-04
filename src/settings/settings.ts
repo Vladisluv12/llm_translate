@@ -1,4 +1,5 @@
 import { loadConfig, saveConfig, type ProviderConfig } from '../shared/config'
+import { clearAllCache } from '../shared/translation-cache'
 
 const fields: Array<keyof ProviderConfig> = [
   'apiUrl', 'apiKey', 'model', 'temperature', 'requestTimeout',
@@ -47,6 +48,19 @@ document.getElementById('save')!.addEventListener('click', async () => {
 document.getElementById('open-shortcuts')!.addEventListener('click', (e) => {
   e.preventDefault()
   browser.tabs.create({ url: 'about:addons' })
+})
+
+const btnClearAllCache = document.getElementById('btn-clear-all-cache') as HTMLButtonElement
+const clearAllStatus = document.getElementById('clear-all-status') as HTMLSpanElement
+
+btnClearAllCache.addEventListener('click', async () => {
+  try {
+    await clearAllCache()
+    clearAllStatus.textContent = 'All translations cleared ✓'
+  } catch {
+    clearAllStatus.textContent = 'Error clearing cache'
+  }
+  setTimeout(() => { clearAllStatus.textContent = '' }, 2000)
 })
 
 init().catch(console.error)

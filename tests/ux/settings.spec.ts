@@ -129,3 +129,17 @@ test('settings page fits within 700px without horizontal scroll', async ({ page 
   const hasOverflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth)
   expect(hasOverflow).toBe(false)
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCENARIO 11: Clear all cache button shows confirmation then clears
+// ─────────────────────────────────────────────────────────────────────────────
+test('clear all cache button shows confirmation then clears', async ({ page }) => {
+  await openSettings(page)
+  const btn = page.locator('#btn-clear-all-cache')
+  await expect(btn).toBeVisible()
+  await btn.click()
+  const status = page.locator('#clear-all-status')
+  await expect(status).toHaveText('All translations cleared ✓')
+  await page.waitForTimeout(2100)
+  await expect(status).toHaveText('')
+})
