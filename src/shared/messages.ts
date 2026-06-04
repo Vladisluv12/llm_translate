@@ -10,6 +10,6 @@ export type Message =
   | { type: 'TRANSLATION_PROGRESS'; done: number; total: number }
   | { type: 'TRANSLATION_DONE' }
   | { type: 'TRANSLATION_ERROR'; message: string }
-  | { type: 'SCROLL_SYNC'; ratio: number }
+  | { type: 'SCROLL_SYNC'; anchorId: string; anchorPx: number }
   | { type: 'GET_PROGRESS' }
   | { type: 'STOP_TRANSLATION' }
