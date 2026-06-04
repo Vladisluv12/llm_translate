@@ -228,18 +228,18 @@ test('scroll sync works correctly after real translation content loads', async (
   }
   await page.evaluate(() => window.__mockBrowser.dispatch({ type: 'TRANSLATION_DONE' }))
 
-  // Now test scroll sync at 3 positions
-  for (const ratio of [0.3, 0.6, 0.9]) {
-    await page.evaluate((r) => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', ratio: r }), ratio)
+  // Test scroll sync at 3 anchor positions
+  for (const anchorId of ['zt-2', 'zt-5', 'zt-7']) {
+    await page.evaluate((id) => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: id, anchorPx: 0 }), anchorId)
     await page.waitForTimeout(400)
 
-    const scrollY = await page.evaluate(() => window.scrollY)
-    const maxScroll = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
-
-    if (maxScroll > 10) {
-      const actual = scrollY / maxScroll
-      expect(actual).toBeGreaterThan(ratio - 0.2)
-      expect(actual).toBeLessThan(ratio + 0.2)
+    const top = await page.evaluate((id) => {
+      const el = document.querySelector(`[data-zt-id="${id}"]`)
+      return el ? el.getBoundingClientRect().top : null
+    }, anchorId)
+    if (top !== null) {
+      expect(top).toBeGreaterThanOrEqual(-5)
+      expect(top).toBeLessThan(30)
     }
   }
 })

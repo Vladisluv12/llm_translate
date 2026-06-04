@@ -171,11 +171,32 @@ async function main(): Promise<void> {
     observer.observe(pageWrapper)
   }
 
-  // Sync scroll between panels
+  // Sync scroll between panels — anchor-based
+  let pdfRafPending = false
   pdfPanel.addEventListener('scroll', () => {
-    const ratio = pdfPanel.scrollTop / (pdfPanel.scrollHeight - pdfPanel.clientHeight || 1)
-    translationPanel.scrollTop = ratio * (translationPanel.scrollHeight - translationPanel.clientHeight)
-  })
+    if (pdfRafPending) return
+    pdfRafPending = true
+    requestAnimationFrame(() => {
+      pdfRafPending = false
+      const pdfPanelTop = pdfPanel.getBoundingClientRect().top
+      const pageEls = pdfPanel.querySelectorAll<HTMLElement>('[data-page]')
+      for (const pageEl of pageEls) {
+        const rect = pageEl.getBoundingClientRect()
+        if (rect.bottom > pdfPanelTop) {
+          const pageNum = parseInt(pageEl.dataset.page!, 10)
+          const anchorPx = Math.max(0, pdfPanelTop - rect.top)
+          const transEl = document.getElementById(`trans-${pageNum}`)
+          if (transEl) {
+            const transElTop = transEl.getBoundingClientRect().top
+              - translationPanel.getBoundingClientRect().top
+              + translationPanel.scrollTop
+            translationPanel.scrollTop = transElTop - anchorPx
+          }
+          break
+        }
+      }
+    })
+  }, { passive: true })
 
   // Memory pressure check every 10s
   setInterval(() => {

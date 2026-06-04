@@ -81,25 +81,23 @@ test('error message appears in status bar', async ({ page }) => {
 test('SCROLL_SYNC message moves window scroll position', async ({ page }) => {
   await openTranslationPage(page)
 
-  // Add many blocks to create scrollable content
   for (let i = 0; i < 30; i++) {
     await sendBlock(page, `zt-${i}`, `Параграф ${i + 1} — достаточно длинный текст для создания прокрутки страницы в браузере.`)
   }
   await page.evaluate(() => window.__mockBrowser.dispatch({ type: 'TRANSLATION_DONE' }))
 
-  // Scroll to 50%
   await page.evaluate(() => {
-    window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', ratio: 0.5 })
+    window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: 'zt-8', anchorPx: 0 })
   })
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(150)
 
-  const scrollY = await page.evaluate(() => window.scrollY)
-  const maxScroll = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
-  const ratio = scrollY / maxScroll
-
-  // Should be near 0.5 (allow ±0.1 for smooth scroll animation)
-  expect(ratio).toBeGreaterThan(0.35)
-  expect(ratio).toBeLessThan(0.65)
+  const top = await page.evaluate(() => {
+    const el = document.querySelector('[data-zt-id="zt-8"]')!
+    return el.getBoundingClientRect().top
+  })
+  // Element should be at the very top of viewport (±5px tolerance)
+  expect(top).toBeGreaterThanOrEqual(-5)
+  expect(top).toBeLessThan(20)
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,16 +120,17 @@ for (const [label, size] of [
       await sendBlock(page, `zt-${i}`, `Параграф ${i + 1} — длинный текст для проверки скролла.`)
     }
 
-    for (const ratio of [0.25, 0.75, 1.0]) {
-      await page.evaluate((r) => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', ratio: r }), ratio)
-      await page.waitForTimeout(350)
+    for (const anchorId of ['zt-1', 'zt-2', 'zt-4']) {
+      await page.evaluate((id) => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: id, anchorPx: 0 }), anchorId)
+      await page.waitForTimeout(200)
 
-      const scrollY = await page.evaluate(() => window.scrollY)
-      const maxScroll = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
-      if (maxScroll > 0) {
-        const actual = scrollY / maxScroll
-        expect(actual).toBeGreaterThan(ratio - 0.15)
-        expect(actual).toBeLessThan(ratio + 0.15)
+      const top = await page.evaluate((id) => {
+        const el = document.querySelector(`[data-zt-id="${id}"]`)
+        return el ? el.getBoundingClientRect().top : null
+      }, anchorId)
+      if (top !== null) {
+        expect(top).toBeGreaterThanOrEqual(-5)
+        expect(top).toBeLessThan(30)
       }
     }
   })
@@ -147,7 +146,7 @@ test('closest block gets highlight class on scroll sync', async ({ page }) => {
   }
 
   // Scroll to near top
-  await page.evaluate(() => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', ratio: 0.05 }))
+  await page.evaluate(() => window.__mockBrowser.dispatch({ type: 'SCROLL_SYNC', anchorId: 'zt-1', anchorPx: 0 }))
   await page.waitForTimeout(400)
   const highlightedCount = await page.locator('#content .block.highlight').count()
   expect(highlightedCount).toBe(1)
