@@ -10,6 +10,7 @@ window.addEventListener('scroll', () => {
   requestAnimationFrame(() => {
     rafPending = false
     const elements = document.querySelectorAll<HTMLElement>('[data-zt-id]')
+    if (elements.length === 0) { rafPending = false; return }
     for (const el of elements) {
       const rect = el.getBoundingClientRect()
       if (rect.bottom > 0) {

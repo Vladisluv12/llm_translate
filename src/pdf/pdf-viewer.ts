@@ -186,7 +186,12 @@ async function main(): Promise<void> {
           const pageNum = parseInt(pageEl.dataset.page!, 10)
           const anchorPx = Math.max(0, pdfPanelTop - rect.top)
           const transEl = document.getElementById(`trans-${pageNum}`)
-          if (transEl) translationPanel.scrollTop = transEl.offsetTop - anchorPx
+          if (transEl) {
+            const transElTop = transEl.getBoundingClientRect().top
+              - translationPanel.getBoundingClientRect().top
+              + translationPanel.scrollTop
+            translationPanel.scrollTop = transElTop - anchorPx
+          }
           break
         }
       }
