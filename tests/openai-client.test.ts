@@ -50,6 +50,7 @@ describe('OpenAIClient', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 429,
+      headers: { get: () => null },
       text: async () => 'rate limited',
     }))
 

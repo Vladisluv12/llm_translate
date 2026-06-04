@@ -42,9 +42,10 @@ export class RateLimitedQueue {
       try {
         return await fn()
       } catch (err: unknown) {
-        const status = (err as { status?: number }).status
-        if (status === 429 && attempt < this.maxRetries) {
-          const backoff = Math.min(1000 * Math.pow(2, attempt), 30000)
+        const e = err as { status?: number; retryAfterMs?: number }
+        if (e.status === 429 && attempt < this.maxRetries) {
+          // Use Retry-After from API if provided, else exponential backoff capped at 65s
+          const backoff = e.retryAfterMs ?? Math.min(1000 * Math.pow(2, attempt), 65000)
           await new Promise(resolve => setTimeout(resolve, backoff))
           attempt++
         } else {
