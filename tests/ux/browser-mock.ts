@@ -45,12 +45,18 @@ export const BROWSER_MOCK_SCRIPT = `
           }
         },
         get(key) {
+          if (key === null) return Promise.resolve({ ...this._store });
           const result = {};
           const keys = typeof key === 'string' ? [key] : (Array.isArray(key) ? key : Object.keys(key));
           keys.forEach(k => { if (this._store[k] !== undefined) result[k] = this._store[k]; });
           return Promise.resolve(result);
         },
         set(obj) { Object.assign(this._store, obj); return Promise.resolve(); },
+        remove(keys) {
+          const arr = typeof keys === 'string' ? [keys] : keys;
+          arr.forEach(k => delete this._store[k]);
+          return Promise.resolve();
+        },
       }
     },
   };
