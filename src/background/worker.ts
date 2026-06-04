@@ -64,12 +64,15 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
   const cachedPage = await getPageCache(sourceUrl)
   if (cachedPage) {
     for (const block of cachedPage.blocks) {
+      if (state.aborted) break
       await sendToTranslationWindow(translationWindowId, {
         type: 'TRANSLATION_BLOCK',
         block: { id: block.id, originalText: block.originalText, translatedText: block.translatedText },
       })
     }
-    await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
+    if (!state.aborted) {
+      await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
+    }
     active.delete(tabId)
     return
   }

@@ -115,9 +115,12 @@ async function main(): Promise<void> {
       const pageNum = parseInt((entry.target as HTMLElement).dataset.page ?? '0', 10)
       if (!pageNum || pageCache.get(pageNum)?.text || pagesInProgress.has(pageNum)) continue
 
+      pagesInProgress.add(pageNum)  // claim the slot before any await
+
       // Check translation cache before calling API
       const cachedTranslation = await getPdfPageCache(pdfUrl, pageNum)
       if (cachedTranslation) {
+        pagesInProgress.delete(pageNum)
         const transEl = document.getElementById(`trans-${pageNum}`)!
         transEl.textContent = cachedTranslation
         transEl.classList.remove('loading')
@@ -128,8 +131,6 @@ async function main(): Promise<void> {
 
       const pressure = checkMemory()
       if (pressure !== 'ok') evictCaches(pageNum, pressure)
-
-      pagesInProgress.add(pageNum)
       try {
         const canvas = canvasEls.get(pageNum)!
         const text = await extractPageText(pdf, pageNum, canvas)

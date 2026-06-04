@@ -76,7 +76,7 @@ describe('getPdfPageCache / setPdfPageCache', () => {
     await setPdfPageCache('https://example.com/doc.pdf', 3, 'Страница три')
     expect(await getPdfPageCache('https://example.com/doc.pdf', 3)).toBe('Страница три')
   })
-  it('merges multiple pages under one storage key', async () => {
+  it('stores and retrieves multiple pages independently', async () => {
     await setPdfPageCache('https://example.com/doc.pdf', 1, 'One')
     await setPdfPageCache('https://example.com/doc.pdf', 2, 'Two')
     expect(await getPdfPageCache('https://example.com/doc.pdf', 1)).toBe('One')
