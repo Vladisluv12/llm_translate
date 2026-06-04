@@ -1,6 +1,6 @@
 import { extractTextBlocks } from './extractor'
 
-;(window as any).__ztExtract =
+;(window as unknown as Record<string, unknown>).__ztExtract =
   () => extractTextBlocks(document.body).map(b => ({ id: b.id, text: b.text }))
 
 let rafPending = false
