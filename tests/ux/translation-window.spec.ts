@@ -105,10 +105,14 @@ test('SCROLL_SYNC message moves window scroll position', async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCENARIO 5: Scroll sync at different window sizes
 // ─────────────────────────────────────────────────────────────────────────────
+// Sizes based on actual 1920x1080 display:
+// - full split: 960x1080 (default viewport in config)
+// - narrow: browser sidebar open, translation panel narrower
+// - zen sidebar: Zen has a left sidebar ~220px, so translation panel ≈ 740px
 for (const [label, size] of [
-  ['narrow (480px)', { width: 480, height: 900 }],
-  ['standard (640px)', { width: 640, height: 800 }],
-  ['wide (1200px)', { width: 1200, height: 900 }],
+  ['zen-sidebar (740px wide)', { width: 740, height: 1080 }],
+  ['split half (960px wide)', { width: 960, height: 1080 }],
+  ['slightly resized (820px wide)', { width: 820, height: 1080 }],
 ] as const) {
   test(`scroll sync works at ${label}`, async ({ page }) => {
     await page.setViewportSize(size)
