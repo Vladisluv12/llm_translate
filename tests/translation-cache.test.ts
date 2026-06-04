@@ -86,6 +86,16 @@ describe('getPdfPageCache / setPdfPageCache', () => {
     await setPdfPageCache('https://example.com/doc.pdf', 1, 'One')
     expect(await getPdfPageCache('https://example.com/doc.pdf', 5)).toBeNull()
   })
+  it('handles concurrent writes to different pages without data loss', async () => {
+    await Promise.all([
+      setPdfPageCache('https://example.com/doc.pdf', 1, 'One'),
+      setPdfPageCache('https://example.com/doc.pdf', 2, 'Two'),
+      setPdfPageCache('https://example.com/doc.pdf', 3, 'Three'),
+    ])
+    expect(await getPdfPageCache('https://example.com/doc.pdf', 1)).toBe('One')
+    expect(await getPdfPageCache('https://example.com/doc.pdf', 2)).toBe('Two')
+    expect(await getPdfPageCache('https://example.com/doc.pdf', 3)).toBe('Three')
+  })
 })
 
 describe('clearPageCache', () => {

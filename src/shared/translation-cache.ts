@@ -3,11 +3,6 @@ export interface PageCacheEntry {
   blocks: Array<{ id: string; originalText: string; translatedText: string }>
 }
 
-export interface PdfCacheEntry {
-  cachedAt: number
-  pages: Record<string, string>
-}
-
 export function normalizeUrl(url: string): string {
   try {
     const u = new URL(url)
@@ -24,8 +19,8 @@ function pageKey(url: string): string {
   return `zt-cache:page:${normalizeUrl(url)}`
 }
 
-function pdfKey(url: string): string {
-  return `zt-cache:pdf:${normalizeUrl(url)}`
+function pdfKey(url: string, pageNum: number): string {
+  return `zt-cache:pdf:${normalizeUrl(url)}:${pageNum}`
 }
 
 export async function getPageCache(url: string): Promise<PageCacheEntry | null> {
@@ -39,22 +34,21 @@ export async function setPageCache(url: string, entry: PageCacheEntry): Promise<
 }
 
 export async function getPdfPageCache(url: string, pageNum: number): Promise<string | null> {
-  const key = pdfKey(url)
+  const key = pdfKey(url, pageNum)
   const result = await browser.storage.local.get(key)
-  const entry = result[key] as PdfCacheEntry | undefined
-  return entry?.pages[String(pageNum)] ?? null
+  return (result[key] as string) ?? null
 }
 
 export async function setPdfPageCache(url: string, pageNum: number, text: string): Promise<void> {
-  const key = pdfKey(url)
-  const result = await browser.storage.local.get(key)
-  const entry: PdfCacheEntry = (result[key] as PdfCacheEntry) ?? { cachedAt: Date.now(), pages: {} }
-  entry.pages[String(pageNum)] = text
-  await browser.storage.local.set({ [key]: entry })
+  await browser.storage.local.set({ [pdfKey(url, pageNum)]: text })
 }
 
 export async function clearPageCache(url: string): Promise<void> {
-  await browser.storage.local.remove([pageKey(url), pdfKey(url)])
+  const pageK = pageKey(url)
+  const pdfPrefix = `zt-cache:pdf:${normalizeUrl(url)}:`
+  const all = await browser.storage.local.get(null)
+  const pdfKeys = Object.keys(all).filter(k => k.startsWith(pdfPrefix))
+  await browser.storage.local.remove([pageK, ...pdfKeys])
 }
 
 export async function clearAllCache(): Promise<void> {
