@@ -70,6 +70,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
       })
     }
     await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
+    active.delete(tabId)
     return
   }
 
