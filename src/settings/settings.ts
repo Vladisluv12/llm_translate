@@ -1,8 +1,10 @@
 import { loadConfig, saveConfig, type ProviderConfig } from '../shared/config'
 import { clearAllCache } from '../shared/translation-cache'
 
+import { getLogs, clearLogs, formatLogs } from '../shared/logger'
+
 const fields: Array<keyof ProviderConfig> = [
-  'apiUrl', 'apiKey', 'model', 'temperature', 'requestTimeout',
+  'scrollSyncEnabled',
   'maxRPS', 'maxTextLengthPerRequest', 'maxParagraphsPerRequest',
   'systemPrompt', 'multiplePrompt', 'singlePrompt', 'aiContextAware', 'sourceLang',
 ]
@@ -20,6 +22,8 @@ async function init(): Promise<void> {
       el.value = String(val)
     }
   }
+
+  await refreshLogs()
 }
 
 document.getElementById('save')!.addEventListener('click', async () => {
@@ -61,6 +65,32 @@ btnClearAllCache.addEventListener('click', async () => {
     clearAllStatus.textContent = 'Error clearing cache'
   }
   setTimeout(() => { clearAllStatus.textContent = '' }, 2000)
+})
+
+const btnCopyLogs = document.getElementById('btn-copy-logs') as HTMLButtonElement
+const btnClearLogs = document.getElementById('btn-clear-logs') as HTMLButtonElement
+const logsStatus = document.getElementById('logs-status') as HTMLElement
+const logsOutput = document.getElementById('logs-output') as HTMLTextAreaElement
+
+async function refreshLogs(): Promise<void> {
+  const entries = await getLogs()
+  logsOutput.value = entries.length > 0 ? formatLogs(entries) : '(no logs yet)'
+  logsOutput.scrollTop = logsOutput.scrollHeight
+}
+
+btnCopyLogs.addEventListener('click', async () => {
+  const entries = await getLogs()
+  const text = entries.length > 0 ? formatLogs(entries) : '(no logs)'
+  await navigator.clipboard.writeText(text)
+  logsStatus.textContent = `Copied ${entries.length} entries`
+  setTimeout(() => { logsStatus.textContent = '' }, 2000)
+})
+
+btnClearLogs.addEventListener('click', async () => {
+  await clearLogs()
+  logsOutput.value = ''
+  logsStatus.textContent = 'Logs cleared'
+  setTimeout(() => { logsStatus.textContent = '' }, 2000)
 })
 
 init().catch(console.error)

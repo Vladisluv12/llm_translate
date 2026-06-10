@@ -45,7 +45,6 @@ describe('RateLimitedQueue', () => {
     const q = new RateLimitedQueue({ maxRPS: 10 })
     let calls = 0
     let actualDelay = 0
-    const origSetTimeout = globalThis.setTimeout
     vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn: TimerHandler, delay?: number) => {
       if (calls === 1) actualDelay = delay ?? 0
       fn instanceof Function && fn()

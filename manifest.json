@@ -22,14 +22,18 @@
     "toggle-translation": {
       "suggested_key": { "default": "Alt+A" },
       "description": "Toggle page translation"
+    },
+    "translate-selection": {
+      "suggested_key": { "default": "Alt+S" },
+      "description": "Translate selected text"
     }
   },
   "options_ui": {
     "page": "settings/settings.html",
     "open_in_tab": true
   },
-  "permissions": ["activeTab", "tabs", "storage", "scripting"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["activeTab", "tabs", "storage", "scripting", "contextMenus"],
+  "host_permissions": ["<all_urls>", "file://*/*"],
   "web_accessible_resources": [
     {
       "resources": ["translation/*", "pdf/*", "chunks/*", "assets/*"],

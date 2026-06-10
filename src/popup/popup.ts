@@ -6,22 +6,25 @@ const btnTranslate = document.getElementById('btn-translate') as HTMLButtonEleme
 const btnPdf = document.getElementById('btn-pdf') as HTMLButtonElement
 const btnClearCache = document.getElementById('btn-clear-cache') as HTMLButtonElement
 const progressEl = document.getElementById('progress')!
-const modelSelect = document.getElementById('model-select') as HTMLSelectElement
+const profileSelect = document.getElementById('profile-select') as HTMLSelectElement
 const settingsLink = document.getElementById('settings-link')!
 
-const MODELS = ['llama3.1', 'mistral:7b']
+import { createLogger } from '../shared/logger'
+
+const log = createLogger('popup')
 
 async function init(): Promise<void> {
   const config = await loadConfig()
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
 
-  MODELS.forEach(m => {
+  profileSelect.innerHTML = ''
+  for (const profile of config.profiles) {
     const opt = document.createElement('option')
-    opt.value = m
-    opt.textContent = m
-    opt.selected = m === config.model
-    modelSelect.appendChild(opt)
-  })
+    opt.value = profile.id
+    opt.textContent = profile.name
+    opt.selected = profile.id === config.activeProfileId
+    profileSelect.appendChild(opt)
+  }
 
   if (tab.url?.match(/\.pdf($|\?)/i) || tab.url?.startsWith('blob:')) {
     btnPdf.style.display = 'block'
@@ -31,6 +34,7 @@ async function init(): Promise<void> {
 btnTranslate.addEventListener('click', async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
   if (!tab?.id || !tab.url) return
+  log.info('translate clicked', { tabId: tab.id, url: tab.url })
   btnTranslate.disabled = true
   progressEl.textContent = 'Starting...'
   const msg: Message = { type: 'START_TRANSLATION', tabId: tab.id, sourceUrl: tab.url }
@@ -41,6 +45,7 @@ btnTranslate.addEventListener('click', async () => {
 btnPdf.addEventListener('click', async () => {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
   if (!tab?.id || !tab.url) return
+  log.info('PDF translate clicked', { tabId: tab.id, url: tab.url })
   const pdfUrl = browser.runtime.getURL(`pdf/pdf-viewer.html?url=${encodeURIComponent(tab.url)}`)
   await browser.tabs.create({ url: pdfUrl })
   window.close()
@@ -62,9 +67,9 @@ btnClearCache.addEventListener('click', async () => {
   setTimeout(() => { btnClearCache.textContent = 'Clear page cache' }, 1500)
 })
 
-modelSelect.addEventListener('change', async () => {
+profileSelect.addEventListener('change', async () => {
   const config = await loadConfig()
-  config.model = modelSelect.value
+  config.activeProfileId = profileSelect.value
   await saveConfig(config)
 })
 

@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import { ocr } from './ocr'
 import { OpenAIClient } from '../background/openai-client'
-import { loadConfig } from '../shared/config'
+import { loadConfig, applyProfile } from '../shared/config'
 import { detectLang, langCodeToName, targetLangName } from '../shared/lang-detect'
 import { renderSinglePrompt } from '../background/text-batcher'
 import { RateLimitedQueue } from '../background/queue'
@@ -98,12 +98,22 @@ async function main(): Promise<void> {
   if (!pdfUrl) { statusEl.textContent = 'No PDF URL provided.'; return }
 
   statusEl.textContent = 'Loading PDF...'
-  const config = await loadConfig()
+  const config = applyProfile(await loadConfig())
   const client = new OpenAIClient(config)
   const queue = new RateLimitedQueue({ maxRPS: config.maxRPS })
   const translationPanel = document.getElementById('translation-panel')!
 
-  const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise
+  // Firefox blocks XHR/fetch to file:// from extension pages — use File API instead
+  let pdfSource: { url: string } | { data: Uint8Array }
+  if (pdfUrl.startsWith('file://')) {
+    const data = await pickLocalFile(pdfUrl)
+    if (!data) return
+    pdfSource = { data }
+  } else {
+    pdfSource = { url: pdfUrl }
+  }
+
+  const pdf = await pdfjsLib.getDocument(pdfSource).promise
   const numPages = pdf.numPages
   statusEl.textContent = `${numPages} pages — rendering...`
 
@@ -227,3 +237,35 @@ async function main(): Promise<void> {
 }
 
 main().catch(err => { statusEl.textContent = `Error: ${(err as Error).message}` })
+
+function pickLocalFile(fileUrl: string): Promise<Uint8Array | null> {
+  const filename = decodeURIComponent(fileUrl.split('/').pop() ?? 'file.pdf')
+
+  statusEl.textContent = ''
+
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding: 24px; font-family: system-ui, sans-serif;'
+  wrapper.innerHTML = `
+    <p style="margin: 0 0 8px; font-size: 14px; color: #555;">
+      Firefox cannot read local files directly.<br>
+      Please select <strong>${filename}</strong>:
+    </p>
+  `
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf,application/pdf'
+  input.style.cssText = 'display: block; margin-top: 8px; cursor: pointer; font-size: 14px;'
+  wrapper.appendChild(input)
+  statusEl.insertAdjacentElement('afterend', wrapper)
+
+  return new Promise((resolve) => {
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) { resolve(null); return }
+      wrapper.remove()
+      statusEl.textContent = 'Loading PDF...'
+      const buf = await file.arrayBuffer()
+      resolve(new Uint8Array(buf))
+    }
+  })
+}

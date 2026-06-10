@@ -1,4 +1,4 @@
-import { loadConfig } from '../shared/config'
+import { loadConfig, applyProfile } from '../shared/config'
 import { getPageCache, setPageCache } from '../shared/translation-cache'
 import { OpenAIClient } from './openai-client'
 import { RateLimitedQueue } from './queue'
@@ -7,6 +7,10 @@ import { openSplitTranslation, closeSplitIfOpen } from './window-manager'
 import { analyzePageContext } from './context-analyzer'
 import { detectLang, langCodeToName, targetLangName } from '../shared/lang-detect'
 import type { Message, TranslationBlock as _TranslationBlock } from '../shared/messages'
+
+import { createLogger } from '../shared/logger'
+
+const log = createLogger('worker')
 
 interface ActiveTranslation {
   translationWindowId: number
@@ -18,11 +22,13 @@ const active = new Map<number, ActiveTranslation>()
 browser.runtime.onMessage.addListener(
   (msg: Message, sender) => {
     if (msg.type === 'START_TRANSLATION') {
+      log.info('START_TRANSLATION received', { tabId: msg.tabId, sourceUrl: msg.sourceUrl })
       if (!active.has(msg.tabId)) {
-        startTranslation(msg.tabId, msg.sourceUrl).catch(console.error)
+        startTranslation(msg.tabId, msg.sourceUrl).catch(err => log.error('startTranslation threw', { error: String(err) }))
       }
     }
     if (msg.type === 'STOP_TRANSLATION' && sender.tab?.id) {
+      log.info('STOP_TRANSLATION received', { tabId: sender.tab.id })
       const state = active.get(sender.tab.id)
       if (state) {
         state.aborted = true
@@ -40,17 +46,20 @@ browser.commands.onCommand.addListener(async (command) => {
   if (!tab?.id || !tab.url) return
 
   if (active.has(tab.id)) {
+    log.info('toggle: stopping translation', { tabId: tab.id })
     const state = active.get(tab.id)!
     state.aborted = true
     await closeSplitIfOpen(state.translationWindowId)
     active.delete(tab.id)
   } else {
+    log.info('toggle: starting translation', { tabId: tab.id, url: tab.url })
     await startTranslation(tab.id, tab.url)
   }
 })
 
 async function startTranslation(tabId: number, sourceUrl: string): Promise<void> {
-  const config = await loadConfig()
+  log.info('startTranslation', { tabId, sourceUrl })
+  const config = applyProfile(await loadConfig())
   const client = new OpenAIClient(config)
   const queue = new RateLimitedQueue({ maxRPS: config.maxRPS })
 
@@ -63,6 +72,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
   // Cache hit: replay instantly without calling API
   const cachedPage = await getPageCache(sourceUrl)
   if (cachedPage) {
+    log.info('cache hit, replaying', { blocks: cachedPage.blocks.length })
     for (const block of cachedPage.blocks) {
       if (state.aborted) break
       await sendToTranslationWindow(translationWindowId, {
@@ -77,6 +87,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
     return
   }
 
+  log.info('cache miss, extracting from page')
   try {
     // Extract text blocks from the page
     let typedBlocks: Array<{ id: string; text: string }>
@@ -88,14 +99,17 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
         }) as unknown as () => void,
       }) as unknown as [{ result: Array<{id:string;text:string}> | null }]
       if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
+        log.warn('extraction returned empty', { blocks })
         await sendToTranslationWindow(translationWindowId, {
           type: 'TRANSLATION_ERROR',
           message: 'Could not extract text from this page. Try reloading the page.',
         })
         return
       }
+      log.info('extracted blocks', { count: blocks.length })
       typedBlocks = blocks as Array<{ id: string; text: string }>
-    } catch {
+    } catch (extractErr) {
+      log.error('extraction threw', { error: String(extractErr) })
       await sendToTranslationWindow(translationWindowId, {
         type: 'TRANSLATION_ERROR',
         message: 'Could not access this page. Please reload and try again.',
@@ -136,7 +150,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
     let done = 0
 
     for (const batch of batches) {
-      if (state.aborted) break
+      if (state.aborted) { log.info('translation aborted'); break }
 
       const userPrompt =
         renderMultiplePrompt(config.multiplePrompt + contextSuffix, batch, fromName, toName)
@@ -157,6 +171,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
           cacheAccumulator.push({ id: item.id, originalText: item.text, translatedText })
         }
       } catch (err) {
+        log.warn('batch failed, retrying individually', { error: String(err), batchSize: batch.length })
         // If batch fails, try individual paragraphs
         for (const item of batch) {
           if (state.aborted) break
@@ -170,7 +185,8 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
             }
             await sendToTranslationWindow(translationWindowId, blockMsg)
             cacheAccumulator.push({ id: item.id, originalText: item.text, translatedText: raw.trim() })
-          } catch {
+          } catch (itemErr) {
+            log.error('item translation failed', { id: item.id, error: String(itemErr) })
             done++
             const errorMsg: Message = {
               type: 'TRANSLATION_BLOCK',
@@ -186,6 +202,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
     }
 
     if (!state.aborted) {
+      log.info('translation complete', { total: typedBlocks.length })
       await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
       if (cacheAccumulator.length === typedBlocks.length) {
         try {

@@ -13,3 +13,7 @@ export type Message =
   | { type: 'SCROLL_SYNC'; anchorId: string; anchorPx: number }
   | { type: 'GET_PROGRESS' }
   | { type: 'STOP_TRANSLATION' }
+  | { type: 'TRANSLATE_SELECTION'; text: string; tabId: number }
+  | { type: 'SELECTION_TRANSLATED'; originalText: string; translatedText: string; from: string; to: string }
+  | { type: 'CLICK_SYNC'; anchorId: string }
+  | { type: 'CLICK_SYNC_BACK'; anchorId: string }
