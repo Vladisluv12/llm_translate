@@ -19,6 +19,105 @@ interface ActiveTranslation {
 
 const active = new Map<number, ActiveTranslation>()
 
+// Register context menu on install
+browser.runtime.onInstalled.addListener(() => {
+  browser.contextMenus.removeAll().then(() => {
+    browser.contextMenus.create({
+      id: 'translate-selection',
+      title: 'Перевести выделенный текст',
+      contexts: ['selection'],
+    })
+  }).catch(() => {})
+})
+
+// Handle context menu click
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId !== 'translate-selection' || !tab?.id || !info.selectionText) return
+
+  const config = applyProfile(await loadConfig())
+  const client = new OpenAIClient(config)
+  const queue = new RateLimitedQueue({ maxRPS: config.maxRPS })
+
+  const fromName = langCodeToName(config.sourceLang === 'auto' ? detectLang(info.selectionText) : config.sourceLang)
+  const toName = targetLangName()
+  const prompt = renderSinglePrompt(config.singlePrompt, info.selectionText, fromName, toName)
+
+  try {
+    const translated = await queue.enqueue(() => client.complete(config.systemPrompt, prompt))
+    await browser.tabs.sendMessage(tab.id, {
+      type: 'SELECTION_TRANSLATED',
+      originalText: info.selectionText,
+      translatedText: translated.trim(),
+      from: fromName,
+      to: toName,
+    } as Message)
+  } catch (err) {
+    await browser.tabs.sendMessage(tab.id, {
+      type: 'SELECTION_TRANSLATED',
+      originalText: info.selectionText,
+      translatedText: `[Ошибка перевода: ${(err as Error).message}]`,
+      from: fromName,
+      to: toName,
+    } as Message)
+  }
+})
+
+// Handle translate-selection hotkey
+browser.commands.onCommand.addListener(async (command) => {
+  if (command === 'translate-selection') {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return
+    const [{ result: selection }] = await browser.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (() => window.getSelection()?.toString() ?? '') as unknown as () => void,
+    }) as unknown as [{ result: string }]
+    if (!selection || selection.trim().length < 2) return
+
+    const config = applyProfile(await loadConfig())
+    const client = new OpenAIClient(config)
+    const queue = new RateLimitedQueue({ maxRPS: config.maxRPS })
+
+    const fromName = langCodeToName(config.sourceLang === 'auto' ? detectLang(selection) : config.sourceLang)
+    const toName = targetLangName()
+    const prompt = renderSinglePrompt(config.singlePrompt, selection, fromName, toName)
+
+    try {
+      const translated = await queue.enqueue(() => client.complete(config.systemPrompt, prompt))
+      await browser.tabs.sendMessage(tab.id, {
+        type: 'SELECTION_TRANSLATED',
+        originalText: selection,
+        translatedText: translated.trim(),
+        from: fromName,
+        to: toName,
+      } as Message)
+    } catch (err) {
+      await browser.tabs.sendMessage(tab.id, {
+        type: 'SELECTION_TRANSLATED',
+        originalText: selection,
+        translatedText: `[Ошибка перевода: ${(err as Error).message}]`,
+        from: fromName,
+        to: toName,
+      } as Message)
+    }
+    return
+  }
+
+  if (command !== 'toggle-translation') return
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
+  if (!tab?.id || !tab.url) return
+
+  if (active.has(tab.id)) {
+    log.info('toggle: stopping translation', { tabId: tab.id })
+    const state = active.get(tab.id)!
+    state.aborted = true
+    await closeSplitIfOpen(state.translationWindowId)
+    active.delete(tab.id)
+  } else {
+    log.info('toggle: starting translation', { tabId: tab.id, url: tab.url })
+    await startTranslation(tab.id, tab.url)
+  }
+})
+
 browser.runtime.onMessage.addListener(
   (msg: Message, sender) => {
     if (msg.type === 'START_TRANSLATION') {
@@ -36,26 +135,16 @@ browser.runtime.onMessage.addListener(
         active.delete(sender.tab.id)
       }
     }
+    // Relay CLICK_SYNC from content script to translation window
+    if (msg.type === 'CLICK_SYNC' && sender.tab?.id) {
+      const state = active.get(sender.tab.id)
+      if (state) {
+        sendToTranslationWindow(state.translationWindowId, msg).catch(() => {})
+      }
+    }
     return false
   }
 )
-
-browser.commands.onCommand.addListener(async (command) => {
-  if (command !== 'toggle-translation') return
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
-  if (!tab?.id || !tab.url) return
-
-  if (active.has(tab.id)) {
-    log.info('toggle: stopping translation', { tabId: tab.id })
-    const state = active.get(tab.id)!
-    state.aborted = true
-    await closeSplitIfOpen(state.translationWindowId)
-    active.delete(tab.id)
-  } else {
-    log.info('toggle: starting translation', { tabId: tab.id, url: tab.url })
-    await startTranslation(tab.id, tab.url)
-  }
-})
 
 async function startTranslation(tabId: number, sourceUrl: string): Promise<void> {
   log.info('startTranslation', { tabId, sourceUrl })

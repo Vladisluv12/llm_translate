@@ -1,4 +1,5 @@
 import type { Message, TranslationBlock } from '../shared/messages'
+import { loadConfig } from '../shared/config'
 
 const statusEl = document.getElementById('status')!
 const contentEl = document.getElementById('content')!
@@ -8,6 +9,15 @@ import { createLogger } from '../shared/logger'
 const log = createLogger('translation')
 
 const blocks = new Map<string, HTMLElement>()
+
+let scrollSyncEnabled = true
+loadConfig().then(c => { scrollSyncEnabled = c.scrollSyncEnabled })
+
+browser.storage.onChanged.addListener((changes) => {
+  if (changes.config?.newValue?.scrollSyncEnabled !== undefined) {
+    scrollSyncEnabled = changes.config.newValue.scrollSyncEnabled
+  }
+})
 
 function setStatus(text: string): void {
   statusEl.textContent = text
@@ -48,7 +58,7 @@ browser.runtime.onMessage.addListener((msg: Message) => {
     setStatus(`Error: ${msg.message}`)
   }
 
-  if (msg.type === 'SCROLL_SYNC') {
+  if (msg.type === 'SCROLL_SYNC' && scrollSyncEnabled) {
     const { anchorId, anchorPx } = msg as Extract<Message, { type: 'SCROLL_SYNC' }>
     const el = blocks.get(anchorId)
     if (!el) return
@@ -68,6 +78,27 @@ browser.runtime.onMessage.addListener((msg: Message) => {
       closest.classList.add('highlight')
     }
   }
+
+  if (msg.type === 'CLICK_SYNC') {
+    const el = blocks.get(msg.anchorId)
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    for (const b of blocks.values()) b.classList.remove('highlight')
+    el.classList.add('highlight')
+  }
+})
+
+// Click sync back: click on translation block → scroll source tab
+document.addEventListener('click', (e) => {
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-zt-id]')
+  if (!el) return
+  const params = new URLSearchParams(location.search)
+  const sourceTabId = parseInt(params.get('sourceTabId') ?? '0', 10)
+  if (!sourceTabId) return
+  browser.tabs.sendMessage(sourceTabId, {
+    type: 'CLICK_SYNC_BACK',
+    anchorId: el.dataset.ztId!,
+  }).catch(() => {})
 })
 
 setStatus('Waiting for translation...')

@@ -15,6 +15,13 @@ const pdfUrl = decodeURIComponent(params.get('url') ?? '')
 const pdfPanel = document.getElementById('pdf-panel')!
 const translationsEl = document.getElementById('translations')!
 const statusEl = document.getElementById('status')!
+let scrollSyncEnabled = true
+loadConfig().then(c => { scrollSyncEnabled = c.scrollSyncEnabled })
+browser.storage.onChanged.addListener((changes) => {
+  if (changes.config?.newValue?.scrollSyncEnabled !== undefined) {
+    scrollSyncEnabled = changes.config.newValue.scrollSyncEnabled
+  }
+})
 
 const HEAP_WARN = 0.8
 const HEAP_CRIT = 0.9
@@ -199,7 +206,8 @@ async function main(): Promise<void> {
 
   // Sync scroll between panels — anchor-based
   let pdfRafPending = false
-  pdfPanel.addEventListener('scroll', () => {
+  pdfPanel.addEventListener("scroll", () => {
+    if (!scrollSyncEnabled) return
     if (pdfRafPending) return
     pdfRafPending = true
     requestAnimationFrame(() => {
@@ -232,6 +240,21 @@ async function main(): Promise<void> {
     const pressure = checkMemory()
     if (pressure !== 'ok') evictCaches(currentPage, pressure)
   }, 10000)
+
+    // Click on translation → scroll PDF to corresponding page
+  translationsEl.addEventListener("click", (e) => {
+    const wrapper = (e.target as HTMLElement).closest<HTMLElement>(".page-translation")
+    if (!wrapper) return
+    const label = wrapper.querySelector(".page-label")?.textContent ?? ""
+    const pageNum = parseInt(label.replace("Page ", ""), 10)
+    if (!pageNum) return
+    const pageWrapper = pdfPanel.querySelector<HTMLElement>(`[data-page="${pageNum}"]`)
+    if (pageWrapper) {
+      pageWrapper.scrollIntoView({ behavior: "smooth", block: "start" })
+      pdfPanel.querySelectorAll("[data-page]").forEach(el => (el as HTMLElement).style.boxShadow = "")
+      pageWrapper.style.boxShadow = "0 0 0 3px rgba(58, 123, 213, 0.4)"
+    }
+  })
 
   statusEl.textContent = `${numPages} pages loaded — scroll to translate`
 }
