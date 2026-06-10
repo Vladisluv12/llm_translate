@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { loadConfig, saveConfig, applyProfile, DEFAULT_CONFIG } from '../src/shared/config'
-import type { ProviderProfile, ProviderConfig } from '../src/shared/config'
+import type { ProviderConfig } from '../src/shared/config'
 
 const store: Record<string, unknown> = {}
 
