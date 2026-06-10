@@ -6,6 +6,10 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
+    "build:test": "vite build --mode test",
+    "dev:test": "vite build --watch --mode test",
+    "start:zen": "npm run build:test && npx web-ext run --source-dir dist/ --firefox /home/vladozz/Загрузки/zen/zen/zen-bin",
+    "start:firefox": "npm run build:test && npx web-ext run --source-dir dist/ --firefox /usr/bin/firefox",
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "tsc --noEmit"
@@ -20,9 +24,13 @@
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/firefox-webext-browser": "^143.0.0",
     "@vitest/coverage-v8": "^4.1.8",
+    "dotenv": "^17.4.2",
     "happy-dom": "^20.9.0",
+    "http-server": "^14.1.1",
+    "pdf-lib": "^1.17.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
     "vitest": "^4.1.8",

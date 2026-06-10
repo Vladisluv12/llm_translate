@@ -5,3 +5,4 @@ node_modules/
 .claude/
 web-ext-artifacts/
 test_debug.js
+.env.test

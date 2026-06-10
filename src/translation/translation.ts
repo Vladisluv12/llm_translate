@@ -3,6 +3,10 @@ import type { Message, TranslationBlock } from '../shared/messages'
 const statusEl = document.getElementById('status')!
 const contentEl = document.getElementById('content')!
 
+import { createLogger } from '../shared/logger'
+
+const log = createLogger('translation')
+
 const blocks = new Map<string, HTMLElement>()
 
 function setStatus(text: string): void {
@@ -21,6 +25,8 @@ function getOrCreateBlock(id: string): HTMLElement {
 }
 
 browser.runtime.onMessage.addListener((msg: Message) => {
+  log.debug('message received', { type: msg.type })
+
   if (msg.type === 'TRANSLATION_BLOCK') {
     const block = msg.block as TranslationBlock
     const el = getOrCreateBlock(block.id)
@@ -33,10 +39,12 @@ browser.runtime.onMessage.addListener((msg: Message) => {
   }
 
   if (msg.type === 'TRANSLATION_DONE') {
+    log.info('translation done')
     setStatus(`Translation complete`)
   }
 
   if (msg.type === 'TRANSLATION_ERROR') {
+    log.error('translation error received', { message: msg.message })
     setStatus(`Error: ${msg.message}`)
   }
 

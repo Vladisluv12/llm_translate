@@ -1,3 +1,7 @@
+import { createLogger } from '../shared/logger'
+
+const log = createLogger('openai')
+
 interface ClientConfig {
   apiUrl: string
   apiKey: string
@@ -10,6 +14,8 @@ export class OpenAIClient {
   constructor(private readonly config: ClientConfig) {}
 
   async complete(systemPrompt: string, userPrompt: string): Promise<string> {
+    log.debug('API request', { model: this.config.model, apiUrl: this.config.apiUrl, systemLen: systemPrompt.length, userLen: userPrompt.length })
+
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(
         () => reject(new Error(`Request timeout after ${this.config.requestTimeout}s`)),
@@ -41,17 +47,22 @@ export class OpenAIClient {
     if (!response.ok) {
       const body = await response.text()
       const retryAfterSec = response.headers.get('Retry-After')
+      const retryAfterMs = retryAfterSec ? parseInt(retryAfterSec, 10) * 1000 : undefined
+      log.error('API error response', { status: response.status, body, retryAfterMs })
       const error = Object.assign(new Error(`API error ${response.status}: ${body}`), {
         status: response.status,
-        retryAfterMs: retryAfterSec ? parseInt(retryAfterSec, 10) * 1000 : undefined,
+        retryAfterMs,
       })
       throw error
     }
 
     const data = await response.json() as { choices: Array<{ message: { content: string } }> }
     if (!data.choices?.length) {
+      log.error('empty choices in API response', { data })
       throw new Error('Empty choices in API response')
     }
-    return data.choices[0].message.content
+    const content = data.choices[0].message.content
+    log.debug('API response ok', { contentLen: content.length })
+    return content
   }
 }

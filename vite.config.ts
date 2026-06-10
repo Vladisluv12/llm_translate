@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import { resolve } from 'path'
 import { copyFileSync, mkdirSync, cpSync, existsSync } from 'fs'
 
@@ -37,7 +37,15 @@ const copyFixtures = {
   },
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+  define: {
+    __EXT_API_URL__: JSON.stringify(env.NVIDIA_API_URL || 'http://localhost:11434/v1/chat/completions'),
+    __EXT_API_KEY__: JSON.stringify(env.NVIDIA_API_KEY || ''),
+    __EXT_MODEL__: JSON.stringify(env.NVIDIA_MODEL || 'llama3.1'),
+  },
   root: 'src',
   plugins: [copyPdfjsWorker, copyManifest, copyFixtures],
   build: {
@@ -61,4 +69,5 @@ export default defineConfig({
     emptyOutDir: true,
     minify: false,
   },
+  }
 })

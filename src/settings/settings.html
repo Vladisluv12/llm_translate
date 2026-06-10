@@ -21,15 +21,45 @@
     button#save:hover { background: #2d6abf; }
     #saved-msg { margin-left: 12px; color: green; font-size: 13px; }
     .hint { font-size: 12px; color: #888; margin-top: 3px; }
+    .profile-item {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+      padding: 8px; border: 1px solid #eee; border-radius: 6px;
+    }
+    .profile-item.active { border-color: #3a7bd5; background: #f0f6ff; }
+    .profile-item button {
+      padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;
+    }
+    .profile-name { flex: 1; font-weight: 500; }
+    .profile-model { color: #666; font-size: 12px; }
+    #profile-form {
+      display: none;
+      margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa;
+    }
+    #profile-form.visible { display: block; }
   </style>
 </head>
 <body>
   <h1>Zen Translate Settings</h1>
 
+  <h2>Profiles</h2>
+  <p class="hint">Select active provider profile. Each profile stores its own API URL, key, and model.</p>
+  <div id="profile-list"></div>
+  <button id="btn-add-profile" style="background:#3a7bd5;color:#fff;padding:6px 14px;border:none;border-radius:6px;cursor:pointer;margin-top:8px">Add Profile</button>
+
+  <div id="profile-form">
+    <h3 style="margin-top:0">Edit Profile</h3>
+    <input type="hidden" id="profile-id">
+    <label><span>Name</span><input type="text" id="profile-name"></label>
+    <label><span>API URL</span><input type="text" id="profile-apiUrl"></label>
+    <label><span>API Key</span><input type="password" id="profile-apiKey" placeholder="Leave empty for Ollama"></label>
+    <label><span>Model</span><input type="text" id="profile-model"></label>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="btn-save-profile" style="background:#3a7bd5;color:#fff;padding:6px 14px;border:none;border-radius:6px;cursor:pointer">Save</button>
+      <button id="btn-cancel-profile" style="background:#999;color:#fff;padding:6px 14px;border:none;border-radius:6px;cursor:pointer">Cancel</button>
+    </div>
+  </div>
+
   <h2>Provider</h2>
-  <label><span>API URL</span><input type="text" id="apiUrl"></label>
-  <label><span>API Key</span><input type="password" id="apiKey" placeholder="Leave empty for Ollama"></label>
-  <label><span>Model</span><input type="text" id="model"></label>
   <label><span>Temperature</span><input type="number" id="temperature" min="0" max="2" step="0.05"></label>
   <label><span>Request Timeout (seconds)</span><input type="number" id="requestTimeout" min="10" max="600"></label>
   <label><span>Max Requests Per Second</span><input type="number" id="maxRPS" min="1" max="50"></label>
@@ -47,6 +77,11 @@
     <input type="checkbox" id="aiContextAware">
     <span style="display:inline">Enable AI Context-Aware</span>
     <p class="hint">Makes a pre-pass to extract page topic and key terms for more consistent translations.</p>
+  </label>
+  <label>
+    <input type="checkbox" id="scrollSyncEnabled">
+    <span style="display:inline">Enable Scroll Synchronization</span>
+    <p class="hint">Syncs scroll position between source page and translation panel. Disable for PDFs if sync is jittery.</p>
   </label>
 
   <h2>Languages</h2>
@@ -66,6 +101,15 @@
   <p class="hint">Translations are stored locally. Cached pages load instantly on revisit.</p>
   <button id="btn-clear-all-cache" style="background:#666">Clear all cached translations</button>
   <span id="clear-all-status" class="hint"></span>
+
+  <h2>Debug Logs</h2>
+  <p class="hint">Last 500 log entries from all extension contexts (background, popup, translation window).</p>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button id="btn-copy-logs" style="background:#555;color:#fff;padding:6px 14px;border:none;border-radius:6px;cursor:pointer">Copy logs</button>
+    <button id="btn-clear-logs" style="background:#c0392b;color:#fff;padding:6px 14px;border:none;border-radius:6px;cursor:pointer">Clear logs</button>
+  </div>
+  <span id="logs-status" class="hint"></span>
+  <textarea id="logs-output" readonly style="height:200px;font-size:11px;color:#333;background:#f8f8f8;margin-top:6px"></textarea>
 
   <button id="save">Save Settings</button>
   <span id="saved-msg"></span>
