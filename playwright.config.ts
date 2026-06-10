@@ -19,7 +19,7 @@ export default defineConfig({
   webServer: {
     command: 'npx http-server dist/ -p 7654 -c-1 --silent --cors -P http://localhost:7654/ --include-hidden',
     url: 'http://localhost:7654',
-    reuseExistingServer: false,
+    reuseExistingServer: true,
   },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
 })
