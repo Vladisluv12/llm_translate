@@ -17,9 +17,13 @@ export const BROWSER_MOCK_SCRIPT = `
     dispatch(msg) {
       listeners.forEach(cb => cb(msg, {}, () => {}));
     },
+    get listenerCount() { return listeners.length; },
   };
 
-  window.browser = {
+  window.confirm = () => true;
+  window.alert = () => {};
+
+  var browser = window.browser = {
     runtime: {
       onMessage: {
         addListener(cb) { listeners.push(cb); },
@@ -66,6 +70,10 @@ export const BROWSER_MOCK_SCRIPT = `
       }
     },
     storage: {
+      onChanged: {
+        addListener(cb) { /* no-op */ },
+        removeListener(cb) { /* no-op */ },
+      },
       local: {
         _store: {
           config: {

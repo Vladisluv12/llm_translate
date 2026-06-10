@@ -42,11 +42,12 @@ test('PDF button appears when current tab is a PDF', async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCENARIO 4: Model dropdown is pre-populated
 // ─────────────────────────────────────────────────────────────────────────────
-test('model dropdown contains llama3.1 and mistral:7b', async ({ page }) => {
+test('profile dropdown contains default profiles', async ({ page }) => {
   await openPopup(page)
-  const options = await page.locator('#model-select option').allTextContents()
-  expect(options).toContain('llama3.1')
-  expect(options).toContain('mistral:7b')
+  const options = await page.locator('#profile-select option').allTextContents()
+  expect(options).toContain('NVIDIA NIM')
+  expect(options).toContain('Llama Local (Ollama)')
+  expect(options).toContain('Mistral Local (Ollama)')
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -113,12 +114,12 @@ test('TRANSLATION_DONE re-enables button and shows Done', async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCENARIO 9: Changing model in dropdown saves config
 // ─────────────────────────────────────────────────────────────────────────────
-test('changing model dropdown saves to storage', async ({ page }) => {
+test('changing profile dropdown saves activeProfileId', async ({ page }) => {
   await openPopup(page)
-  await page.locator('#model-select').selectOption('mistral:7b')
+  await page.locator('#profile-select').selectOption('mistral-local')
 
   const stored = await page.evaluate(() => window.browser.storage.local._store)
-  expect(stored.config?.model).toBe('mistral:7b')
+  expect(stored.config?.activeProfileId).toBe('mistral-local')
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

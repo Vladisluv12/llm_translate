@@ -5,6 +5,14 @@ async function openArticle(page: Page) {
   await page.addInitScript(BROWSER_MOCK_SCRIPT)
   await page.goto('/fixtures/article.html')
   await page.waitForLoadState('networkidle')
+  // Inject content script inline (content.ts isn't auto-injected in Playwright)
+  await page.evaluate(() => {
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = '/content/content.js'
+    document.head.appendChild(script)
+  })
+  await page.waitForTimeout(300)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

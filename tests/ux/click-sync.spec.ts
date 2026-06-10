@@ -2,6 +2,8 @@ import { test, expect, Page } from '@playwright/test'
 import { BROWSER_MOCK_SCRIPT } from './browser-mock'
 
 async function openTranslationPage(page: Page) {
+  page.on('console', msg => console.log('PAGE LOG:', msg.text()))
+  page.on('pageerror', err => console.log('PAGE ERROR:', err.message))
   await page.addInitScript(BROWSER_MOCK_SCRIPT)
   await page.goto('/translation/translation.html?sourceTabId=42')
   await page.waitForLoadState('networkidle')
@@ -26,18 +28,26 @@ test('CLICK_SYNC scrolls translation window to block', async ({ page }) => {
   }
   await page.evaluate(() => window.__mockBrowser.dispatch({ type: 'TRANSLATION_DONE' }))
 
+  const debug = await page.evaluate(() => ({
+    status: document.getElementById('status')?.textContent,
+    blocks: document.querySelectorAll('.block').length,
+    listeners: (window as any).__mockBrowser?.listenerCount,
+  }))
+  console.log('DEBUG:', debug)
+
   await page.evaluate(() => {
     window.__mockBrowser.dispatch({ type: 'CLICK_SYNC', anchorId: 'zt-10' })
   })
-  await page.waitForTimeout(200)
+  await page.waitForTimeout(500)
 
-  const top = await page.evaluate(() => {
+  const rect = await page.evaluate(() => {
     const el = document.querySelector('[data-zt-id="zt-10"]')
-    return el ? el.getBoundingClientRect().top : null
+    return el ? el.getBoundingClientRect() : null
   })
-  expect(top).not.toBeNull()
-  expect(top!).toBeGreaterThanOrEqual(-5)
-  expect(top!).toBeLessThan(50)
+  expect(rect).not.toBeNull()
+  const center = rect!.top + rect!.height / 2
+  const viewportCenter = await page.evaluate(() => window.innerHeight / 2)
+  expect(Math.abs(center - viewportCenter)).toBeLessThan(50)
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

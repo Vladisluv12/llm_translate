@@ -5,6 +5,8 @@ async function openSettings(page: Page) {
   await page.addInitScript(BROWSER_MOCK_SCRIPT)
   await page.goto('/settings/settings.html')
   await page.waitForLoadState('networkidle')
+  // Wait for async init() to render profiles
+  await page.waitForSelector('.profile-item', { timeout: 5000 })
 }
 
 async function openPopup(page: Page) {

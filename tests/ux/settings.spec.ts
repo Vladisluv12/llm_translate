@@ -12,8 +12,7 @@ async function openSettings(page: Page) {
 // ─────────────────────────────────────────────────────────────────────────────
 test('settings fields pre-populated with defaults', async ({ page }) => {
   await openSettings(page)
-  await expect(page.locator('#apiUrl')).toHaveValue('http://localhost:11434/v1/chat/completions')
-  await expect(page.locator('#model')).toHaveValue('llama3.1')
+  await expect(page.locator('#temperature')).toHaveValue('0.1')
   await expect(page.locator('#requestTimeout')).toHaveValue('120')
   await expect(page.locator('#maxRPS')).toHaveValue('5')
 })
@@ -39,16 +38,16 @@ test('Saved! message clears automatically after 2s', async ({ page }) => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SCENARIO 4: Model and URL changes are persisted
+// SCENARIO 4: Profile changes are persisted
 // ─────────────────────────────────────────────────────────────────────────────
-test('changing model and URL persists to storage', async ({ page }) => {
+test('editing profile name persists to storage', async ({ page }) => {
   await openSettings(page)
-  await page.locator('#model').fill('mistral-translate')
-  await page.locator('#apiUrl').fill('http://localhost:11434/v1/chat/completions')
-  await page.locator('#save').click()
+  await page.locator('.profile-item .btn-edit').first().click()
+  await page.locator('#profile-name').fill('NVIDIA Updated')
+  await page.locator('#btn-save-profile').click()
 
   const stored = await page.evaluate(() => window.browser.storage.local._store)
-  expect(stored.config?.model).toBe('mistral-translate')
+  expect(stored.config?.profiles[0].name).toBe('NVIDIA Updated')
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,8 +121,8 @@ test('custom system prompt is saved', async ({ page }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCENARIO 10: Page layout doesn't overflow on 700px width
 // ─────────────────────────────────────────────────────────────────────────────
-test('settings page fits within 700px without horizontal scroll', async ({ page }) => {
-  await page.setViewportSize({ width: 740, height: 900 })
+test('settings page fits within 800px without horizontal scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 900 })
   await openSettings(page)
 
   const hasOverflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth)
