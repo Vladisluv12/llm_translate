@@ -126,6 +126,18 @@ test('settings page fits within 800px without horizontal scroll', async ({ page 
   await openSettings(page)
 
   const hasOverflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth)
+  if (hasOverflow) {
+    const widest = await page.evaluate(() => {
+      const all = document.querySelectorAll('*')
+      let maxW = 0, el = null
+      for (const e of all) {
+        const w = e.scrollWidth
+        if (w > maxW) { maxW = w; el = e.tagName + (e.id ? '#' + e.id : '') + (e.className ? '.' + e.className.split(' ').join('.') : '') }
+      }
+      return { maxW, el, bodyW: document.body.clientWidth }
+    })
+    console.log('WIDEST ELEMENT:', widest)
+  }
   expect(hasOverflow).toBe(false)
 })
 

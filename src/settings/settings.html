@@ -21,9 +21,11 @@
     button#save:hover { background: #2d6abf; }
     #saved-msg { margin-left: 12px; color: green; font-size: 13px; }
     .hint { font-size: 12px; color: #888; margin-top: 3px; }
+    *, *::before, *::after { box-sizing: border-box; }
     .profile-item {
       display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
       padding: 8px; border: 1px solid #eee; border-radius: 6px;
+      flex-wrap: wrap; min-width: 0;
     }
     .profile-item.active { border-color: #3a7bd5; background: #f0f6ff; }
     .profile-item button {
