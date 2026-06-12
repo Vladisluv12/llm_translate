@@ -2,9 +2,21 @@ import { extractTextBlocks } from './extractor'
 import { loadConfig } from '../shared/config'
 import type { Message } from '../shared/messages'
 import { showInlinePanel } from './inline-panel'
+import { createLogger } from '../shared/logger'
+
+const log = createLogger('content')
+
+log.info('content script loaded', { url: location.href, readyState: document.readyState })
 
 ;(window as unknown as Record<string, unknown>).__ztExtract =
-  () => extractTextBlocks(document.body).map(b => ({ id: b.id, text: b.text }))
+  () => {
+    log.debug('__ztExtract called', { readyState: document.readyState })
+    const blocks = extractTextBlocks(document.body).map(b => ({ id: b.id, text: b.text }))
+    log.debug('__ztExtract returning', { count: blocks.length })
+    return blocks
+  }
+
+log.info('__ztExtract defined on window')
 
 let scrollSyncEnabled = true
 loadConfig().then(c => { scrollSyncEnabled = c.scrollSyncEnabled })
@@ -50,6 +62,7 @@ document.addEventListener('click', (e) => {
 // Message listener: inline panel + reverse click sync
 browser.runtime.onMessage.addListener((msg: Message) => {
   if (msg.type === 'SELECTION_TRANSLATED') {
+    log.debug('SELECTION_TRANSLATED received', { originalLen: msg.originalText.length, translatedLen: msg.translatedText.length })
     showInlinePanel(msg.originalText, msg.translatedText)
     return false
   }

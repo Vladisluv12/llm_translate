@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:content": "vite build --config vite.content.config.ts",
     "dev": "vite build --watch",
-    "build:test": "vite build --mode test",
+    "build:test": "rm -rf dist && vite build --config vite.content.config.ts --mode test && vite build --mode test",
     "dev:test": "vite build --watch --mode test",
     "start:zen": "npm run build:test && npx web-ext run --source-dir dist/ --firefox /home/vladozz/Загрузки/zen/zen/zen-bin",
     "start:firefox": "npm run build:test && npx web-ext run --source-dir dist/ --firefox /usr/bin/firefox",

@@ -10,7 +10,10 @@ export interface TextBlock {
 }
 
 let idCounter = 0
-export const MIN_WORD_COUNT = 3
+export const MIN_WORD_COUNT = 2  // Reduced from 3 to include headings with 2 words
+
+import { createLogger } from '../shared/logger'
+const log = createLogger('extractor')
 
 export function resetIdCounter(): void {
   idCounter = 0
@@ -26,18 +29,28 @@ function hasSkippedParent(el: Element): boolean {
 }
 
 export function extractTextBlocks(root: Element = document.body): TextBlock[] {
+  log.debug('extractTextBlocks start', { selector: TRANSLATABLE_SELECTORS })
   const elements = Array.from(root.querySelectorAll(TRANSLATABLE_SELECTORS))
+  log.debug('matched elements', { count: elements.length })
   const blocks: TextBlock[] = []
 
   for (const el of elements) {
     const text = el.textContent?.trim() ?? ''
-    if (text.split(/\s+/).filter(w => w.length > 0).length < MIN_WORD_COUNT) continue
-    if (hasSkippedParent(el)) continue
+    const wordCount = text.split(/\s+/).filter(w => w.length > 0).length
+    if (wordCount < MIN_WORD_COUNT) {
+      log.debug('skipped: word count', { text: text.slice(0, 50), count: wordCount })
+      continue
+    }
+    if (hasSkippedParent(el)) {
+      log.debug('skipped: parent', { tagName: el.tagName, parent: el.parentElement?.tagName })
+      continue
+    }
 
     const id = `zt-${++idCounter}`
     el.setAttribute('data-zt-id', id)
     blocks.push({ id, text, element: el })
   }
 
+  log.info('extractTextBlocks done', { blocks: blocks.length })
   return blocks
 }

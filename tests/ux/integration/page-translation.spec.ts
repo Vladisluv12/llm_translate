@@ -5,7 +5,7 @@
  */
 import { test, expect, Page } from '@playwright/test'
 import { BROWSER_MOCK_SCRIPT } from '../browser-mock'
-import { translateText, translateBatch, NVIDIA_CONFIG } from './nvidia-client'
+import { translateText, translateBatch } from './nvidia-client'
 
 // Extractor logic (mirrors src/content/extractor.ts) run inside the browser
 const EXTRACT_SCRIPT = `

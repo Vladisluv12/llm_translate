@@ -7,8 +7,8 @@ describe('DEFAULT_CONFIG', () => {
     expect(DEFAULT_CONFIG.requestTimeout).toBe(120)
   })
 
-  it('has maxRPS of 5', () => {
-    expect(DEFAULT_CONFIG.maxRPS).toBe(5)
+  it('has maxRPS of ~40/min (0.67 per sec)', () => {
+    expect(DEFAULT_CONFIG.maxRPS).toBe(0.67)
   })
 
   it('has 3 default profiles', () => {

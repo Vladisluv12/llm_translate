@@ -31,15 +31,15 @@ describe('RateLimitedQueue', () => {
   })
 
   it('throws after max retries exceeded', async () => {
-    const q = new RateLimitedQueue({ maxRPS: 10, maxRetries: 2 })
-    const fn = vi.fn().mockRejectedValue(Object.assign(new Error('fail'), { status: 429 }))
+    vi.useRealTimers()
+    const q = new RateLimitedQueue({ maxRPS: 1000, maxRetries: 2 })
+    const fn = vi.fn().mockImplementation(() => {
+      throw Object.assign(new Error('fail'), { status: 429 })
+    })
 
-    const promise = q.enqueue(fn)
-    await vi.runAllTimersAsync()
-    await expect(promise).rejects.toThrow('fail')
+    await expect(q.enqueue(fn)).rejects.toThrow('fail')
     expect(fn).toHaveBeenCalledTimes(3) // initial + 2 retries
   })
-})
 
   it('uses retryAfterMs from error instead of exponential backoff', async () => {
     const q = new RateLimitedQueue({ maxRPS: 10 })
@@ -63,3 +63,4 @@ describe('RateLimitedQueue', () => {
     expect(actualDelay).toBe(45000)
     vi.restoreAllMocks()
   })
+})

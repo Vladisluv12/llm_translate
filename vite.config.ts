@@ -2,7 +2,6 @@ import { defineConfig, loadEnv } from 'vite'
 import { resolve } from 'path'
 import { copyFileSync, mkdirSync, cpSync, existsSync } from 'fs'
 
-// Plugin to copy PDF.js worker into dist/chunks/ after build
 const copyPdfjsWorker = {
   name: 'copy-pdfjs-worker',
   closeBundle() {
@@ -14,7 +13,6 @@ const copyPdfjsWorker = {
   },
 }
 
-// Plugin to copy manifest.json into dist/ after build
 const copyManifest = {
   name: 'copy-manifest',
   closeBundle() {
@@ -40,34 +38,36 @@ const copyFixtures = {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
-  return {
-  define: {
+  const sharedDefine = {
     __EXT_API_URL__: JSON.stringify(env.NVIDIA_API_URL || 'http://localhost:11434/v1/chat/completions'),
     __EXT_API_KEY__: JSON.stringify(env.NVIDIA_API_KEY || ''),
     __EXT_MODEL__: JSON.stringify(env.NVIDIA_MODEL || 'llama3.1'),
-  },
-  root: 'src',
-  plugins: [copyPdfjsWorker, copyManifest, copyFixtures],
-  build: {
-    rollupOptions: {
-      input: {
-        'background/worker': resolve(__dirname, 'src/background/worker.ts'),
-        'content/content': resolve(__dirname, 'src/content/content.ts'),
-        translation: resolve(__dirname, 'src/translation/translation.html'),
-        popup: resolve(__dirname, 'src/popup/popup.html'),
-        settings: resolve(__dirname, 'src/settings/settings.html'),
-        'pdf-viewer': resolve(__dirname, 'src/pdf/pdf-viewer.html'),
+  }
+
+  return {
+    define: sharedDefine,
+    root: 'src',
+    plugins: [copyPdfjsWorker, copyManifest, copyFixtures],
+    build: {
+      rollupOptions: {
+        input: {
+          'background/worker': resolve(__dirname, 'src/background/worker.ts'),
+          translation: resolve(__dirname, 'src/translation/translation.html'),
+          popup: resolve(__dirname, 'src/popup/popup.html'),
+          settings: resolve(__dirname, 'src/settings/settings.html'),
+          'pdf-viewer': resolve(__dirname, 'src/pdf/pdf-viewer.html'),
+        },
+        output: {
+          format: 'es',
+          entryFileNames: '[name].js',
+          chunkFileNames: 'chunks/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash][extname]',
+        },
       },
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: 'chunks/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]',
-      },
+      target: 'firefox115',
+      outDir: '../dist',
+      emptyOutDir: false,
+      minify: false,
     },
-    target: 'firefox115',
-    outDir: '../dist',
-    emptyOutDir: true,
-    minify: false,
-  },
   }
 })

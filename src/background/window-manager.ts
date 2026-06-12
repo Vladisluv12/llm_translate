@@ -7,12 +7,24 @@ export async function openSplitTranslation(
   sourceTabId: number,
   translationUrl: string
 ): Promise<SplitResult> {
-  // Get screen dimensions from the content script context
-  const [{ result }] = await browser.scripting.executeScript({
-    target: { tabId: sourceTabId },
-    func: (() => ({ w: window.screen.width, h: window.screen.height })) as unknown as () => void,
-  })
-  const { w, h } = result as { w: number; h: number }
+  let w = 1920
+  let h = 1080
+
+  try {
+    const [{ result }] = await browser.scripting.executeScript({
+      target: { tabId: sourceTabId },
+      func: (() => {
+        return { w: window.screen?.width || 1920, h: window.screen?.height || 1080 }
+      }) as unknown as () => void,
+    })
+    if (result && typeof result.w === 'number' && typeof result.h === 'number') {
+      w = result.w
+      h = result.h
+    }
+  } catch (e) {
+    console.warn('Failed to get screen dimensions, using defaults', e)
+  }
+
   const half = Math.floor(w / 2)
 
   const sourceWindow = await browser.windows.getCurrent()

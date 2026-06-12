@@ -67,7 +67,7 @@ const DEFAULT_PROFILES: ProviderProfile[] = [
 export const DEFAULT_CONFIG: ProviderConfig = {
   temperature: 0.1,
   requestTimeout: 120,
-  maxRPS: 5,
+  maxRPS: 0.67,  // ~40 requests per minute for NVIDIA NIM
   maxTextLengthPerRequest: 1800,
   maxParagraphsPerRequest: 10,
   systemPrompt:

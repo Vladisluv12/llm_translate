@@ -1,3 +1,7 @@
+import { createLogger } from '../shared/logger'
+
+const log = createLogger('inline-panel')
+
 const PANEL_ID = 'zt-inline-panel'
 
 function escapeHtml(text: string): string {
@@ -7,6 +11,7 @@ function escapeHtml(text: string): string {
 }
 
 export function showInlinePanel(original: string, translated: string): void {
+  log.debug('showInlinePanel called', { originalLen: original.length, translatedLen: translated.length, bodyExists: !!document.body })
   let panel = document.getElementById(PANEL_ID)
   if (!panel) {
     panel = document.createElement('div')
@@ -29,13 +34,6 @@ export function showInlinePanel(original: string, translated: string): void {
       padding: 16px;
       color: #1a1a1a;
     `
-    // Dark mode
-    const darkMedia = window.matchMedia('(prefers-color-scheme: dark)')
-    if (darkMedia.matches) {
-      panel.style.background = '#1a1a1a'
-      panel.style.color = '#e0e0e0'
-      panel.style.borderColor = '#444'
-    }
     document.body.appendChild(panel)
   }
 

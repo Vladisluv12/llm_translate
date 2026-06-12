@@ -12,6 +12,83 @@ import { createLogger } from '../shared/logger'
 
 const log = createLogger('worker')
 
+const TRANSLATABLE_SELECTORS = 'p, h1, h2, h3, h4, h5, h6, li, td, th, blockquote, figcaption'
+const SKIP_PARENTS = new Set(['code', 'pre', 'script', 'style', 'noscript'])
+const MIN_WORD_COUNT = 3
+
+function hasSkippedParent(el: Element): boolean {
+  let node: Element | null = el
+  while (node) {
+    if (SKIP_PARENTS.has(node.tagName.toLowerCase())) return true
+    node = node.parentElement
+  }
+  return false
+}
+
+async function extractWithRetry(tabId: number): Promise<Array<{id:string;text:string}> | null> {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    log.debug('extraction attempt', { attempt })
+    try {
+      const [{ result: blocks }] = await browser.scripting.executeScript({
+        target: { tabId },
+        func: (function() {
+          const SELECTORS = 'p, h1, h2, h3, h4, h5, h6, li, td, th, blockquote, figcaption';
+          const SKIP_TAGS = ['code', 'pre', 'script', 'style', 'noscript'];
+          const MIN_WORDS = 3;
+
+          function hasSkippedParent(el: Element): boolean {
+            let node: Element | null = el;
+            while (node) {
+              if (SKIP_TAGS.indexOf(node.tagName.toLowerCase()) !== -1) return true;
+              node = node.parentElement;
+            }
+            return false;
+          }
+
+          try {
+            const root = document.body;
+            if (!root) return { error: 'no body' };
+            const elements = Array.from(root.querySelectorAll(SELECTORS));
+            if (elements.length === 0) {
+              return { error: 'no elements', bodyChildren: root.children.length, tagName: root.tagName };
+            }
+            const results: Array<{id: string, text: string}> = [];
+            let idCounter = 0;
+
+            for (let i = 0; i < elements.length; i++) {
+              const el = elements[i];
+              const text = el.textContent ? el.textContent.trim() : '';
+              const wordCount = text.split(/\s+/).filter((w: string) => w.length > 0).length;
+              if (wordCount < MIN_WORDS) continue;
+              if (hasSkippedParent(el)) continue;
+              const id = 'zt-' + (++idCounter);
+              el.setAttribute('data-zt-id', id);
+              results.push({ id: id, text: text });
+            }
+            return { blocks: results };
+          } catch (e: unknown) {
+            return { error: String(e) };
+          }
+        }) as unknown as () => void,
+      }) as unknown as [{ result: { blocks?: Array<{id:string;text:string}>, error?: string, bodyChildren?: number, tagName?: string } | null }]
+
+      if (blocks && typeof blocks === 'object' && 'blocks' in blocks && Array.isArray(blocks.blocks) && blocks.blocks.length > 0) {
+        log.info('extraction succeeded', { attempt, count: blocks.blocks.length })
+        return blocks.blocks
+      }
+      if (blocks && typeof blocks === 'object' && 'error' in blocks) {
+        log.warn('extraction error', { attempt, ...blocks })
+      } else {
+        log.warn('extraction returned empty', { attempt, blocks })
+      }
+    } catch (e) {
+      log.warn('extraction threw', { attempt, error: String(e) })
+    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, 500))
+  }
+  return null
+}
+
 interface ActiveTranslation {
   translationWindowId: number
   aborted: boolean
@@ -44,6 +121,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
   try {
     const translated = await queue.enqueue(() => client.complete(config.systemPrompt, prompt))
+    log.debug('selection translated, sending to tab', { tabId: tab.id, contentLen: translated.trim().length })
     await browser.tabs.sendMessage(tab.id, {
       type: 'SELECTION_TRANSLATED',
       originalText: info.selectionText,
@@ -51,7 +129,9 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
       from: fromName,
       to: toName,
     } as Message)
+    log.debug('SELECTION_TRANSLATED sent to tab')
   } catch (err) {
+    log.warn('selection translation error, sending error to tab', { tabId: tab.id, error: String(err) })
     await browser.tabs.sendMessage(tab.id, {
       type: 'SELECTION_TRANSLATED',
       originalText: info.selectionText,
@@ -160,6 +240,7 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
 
   // Cache hit: replay instantly without calling API
   const cachedPage = await getPageCache(sourceUrl)
+  log.debug('cache lookup', { sourceUrl, found: !!cachedPage })
   if (cachedPage) {
     log.info('cache hit, replaying', { blocks: cachedPage.blocks.length })
     for (const block of cachedPage.blocks) {
@@ -177,34 +258,16 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
   }
 
   log.info('cache miss, extracting from page')
-  try {
-    // Extract text blocks from the page
-    let typedBlocks: Array<{ id: string; text: string }>
-    try {
-      const [{ result: blocks }] = await browser.scripting.executeScript({
-        target: { tabId },
-        func: (() => {
-          return (window as unknown as { __ztExtract: () => Array<{id:string;text:string}> }).__ztExtract()
-        }) as unknown as () => void,
-      }) as unknown as [{ result: Array<{id:string;text:string}> | null }]
-      if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
-        log.warn('extraction returned empty', { blocks })
-        await sendToTranslationWindow(translationWindowId, {
-          type: 'TRANSLATION_ERROR',
-          message: 'Could not extract text from this page. Try reloading the page.',
-        })
-        return
-      }
-      log.info('extracted blocks', { count: blocks.length })
-      typedBlocks = blocks as Array<{ id: string; text: string }>
-    } catch (extractErr) {
-      log.error('extraction threw', { error: String(extractErr) })
-      await sendToTranslationWindow(translationWindowId, {
-        type: 'TRANSLATION_ERROR',
-        message: 'Could not access this page. Please reload and try again.',
-      })
-      return
-    }
+  const typedBlocks = await extractWithRetry(tabId)
+  if (!typedBlocks) {
+    log.error('extraction failed after retries')
+    await sendToTranslationWindow(translationWindowId, {
+      type: 'TRANSLATION_ERROR',
+      message: 'Could not extract text from this page. Try reloading the page.',
+    })
+    return
+  }
+  log.info('extracted blocks', { count: typedBlocks.length })
 
     const cacheAccumulator: Array<{ id: string; originalText: string; translatedText: string }> = []
 
@@ -236,10 +299,15 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
     const totalMsg: Message = { type: 'TRANSLATION_PROGRESS', done: 0, total: typedBlocks.length }
     await sendToTranslationWindow(translationWindowId, totalMsg)
 
+    log.info('translation batches', { totalBatches: batches.length, blocks: typedBlocks.length, maxRPS: config.maxRPS })
+
     let done = 0
 
     for (const batch of batches) {
       if (state.aborted) { log.info('translation aborted'); break }
+
+      log.debug('batch starting', { batchIndex: batches.indexOf(batch), batchSize: batch.length, done })
+      const batchStartTime = Date.now()
 
       const userPrompt =
         renderMultiplePrompt(config.multiplePrompt + contextSuffix, batch, fromName, toName)
@@ -247,6 +315,9 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
 
       try {
         const raw = await queue.enqueue(() => client.complete(systemPrompt, userPrompt))
+        const batchTime = Date.now() - batchStartTime
+        log.debug('batch completed', { batchIndex: batches.indexOf(batch), timeMs: batchTime, done })
+
         const translations = parseMultipleResponse(raw)
 
         for (const item of batch) {
@@ -291,17 +362,22 @@ async function startTranslation(tabId: number, sourceUrl: string): Promise<void>
     }
 
     if (!state.aborted) {
-      log.info('translation complete', { total: typedBlocks.length })
+      log.info('translation complete', { total: typedBlocks.length, cached: cacheAccumulator.length })
       await sendToTranslationWindow(translationWindowId, { type: 'TRANSLATION_DONE' })
       if (cacheAccumulator.length === typedBlocks.length) {
         try {
           await setPageCache(sourceUrl, { cachedAt: Date.now(), blocks: cacheAccumulator })
-        } catch { /* storage quota exceeded — translation succeeded, cache skipped */ }
+          log.info('cache saved', { blocks: cacheAccumulator.length })
+        } catch (e) {
+          log.warn('cache save failed', { error: String(e) })
+        }
+      } else {
+        log.warn('cache NOT saved - counts mismatch', { accumulated: cacheAccumulator.length, total: typedBlocks.length })
       }
+    } else {
+      log.warn('translation aborted, cache NOT saved')
     }
-  } finally {
-    active.delete(tabId)
-  }
+  active.delete(tabId)
 }
 
 async function sendToTranslationWindow(windowId: number, msg: Message): Promise<void> {

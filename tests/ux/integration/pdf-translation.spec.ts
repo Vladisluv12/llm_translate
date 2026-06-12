@@ -2,7 +2,7 @@
  * PDF translation UX tests using real NVIDIA API.
  * Tests pdf-viewer.html layout, text extraction simulation, and translation rendering.
  */
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { BROWSER_MOCK_SCRIPT } from '../browser-mock'
 import { translateText } from './nvidia-client'
 
@@ -13,13 +13,6 @@ const PDF_MOCK = BROWSER_MOCK_SCRIPT + `
   window.browser.runtime.getURL = (p) => 'http://localhost:7654/' + p;
 })();
 `
-
-async function openPdfViewer(page: Page, pdfUrl: string) {
-  await page.addInitScript(PDF_MOCK)
-  const encoded = encodeURIComponent(pdfUrl)
-  await page.goto(`/pdf/pdf-viewer.html?url=${encoded}`)
-  await page.waitForLoadState('networkidle')
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCENARIO 1: PDF viewer layout — two panels visible at 960x1080

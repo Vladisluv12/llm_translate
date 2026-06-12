@@ -8,6 +8,8 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    include: ['tests/**/*.test.ts'],
+    exclude: ['tests/ux/**/*'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
