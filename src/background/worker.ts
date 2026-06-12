@@ -12,19 +12,6 @@ import { createLogger } from '../shared/logger'
 
 const log = createLogger('worker')
 
-const TRANSLATABLE_SELECTORS = 'p, h1, h2, h3, h4, h5, h6, li, td, th, blockquote, figcaption'
-const SKIP_PARENTS = new Set(['code', 'pre', 'script', 'style', 'noscript'])
-const MIN_WORD_COUNT = 3
-
-function hasSkippedParent(el: Element): boolean {
-  let node: Element | null = el
-  while (node) {
-    if (SKIP_PARENTS.has(node.tagName.toLowerCase())) return true
-    node = node.parentElement
-  }
-  return false
-}
-
 async function extractWithRetry(tabId: number): Promise<Array<{id:string;text:string}> | null> {
   for (let attempt = 1; attempt <= 3; attempt++) {
     log.debug('extraction attempt', { attempt })
